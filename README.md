@@ -39,6 +39,12 @@ This repo is **public from the first commit**. The rule travels with the repo:
 
 If a change can't pass all three, it doesn't belong here.
 
+**Secrets** follow one rule: none in the *repo*; secrets on the *device* are fine,
+injected at provision time from your gitignored `config.yml`. Personal creds (WiFi,
+a fine-grained GitHub PAT) are allowed on the deck; lab creds are not — a device
+that leaves the house must not carry lab access. Full reasoning and the two-tier
+model: [docs/secrets-posture.md](docs/secrets-posture.md).
+
 ## Device profiles
 
 A profile (`profiles/<name>.yml`) is data: screen geometry, board, input device,
@@ -86,13 +92,23 @@ roles/tooling/                zsh, tmux, git, stow — light by constraint
 roles/dotfiles/               clone public dotfiles, stow (gated)
 ```
 
-## Increments
+## Roadmap
 
-- **I1 — bare provisioning** *(this one)*: inventory, `base`, `tooling`, `dotfiles`.
-- **I2 — hardware enablement**: capture the display + keyboard work as a profile-driven role.
-- **I3 — small-screen config**: tmux, pager, editor sized from profile geometry.
-- **I4 — network and sessions**: WireGuard, Claude session wrapper.
-- **I5 — first companion**: a text-cleaning service for 320×320.
+**Done:** bare provisioning — inventory, `base`, `tooling`, `dotfiles`.
+
+**Planned roles** (scaffolded under `roles/`, each wired into `site.yml` as it
+lands; exact sequencing is set by the SPEC amendment):
+
+- `wifi` — prioritised network profiles from the `wifi` list, so a reflashed deck reconnects unattended.
+- `workstation` — uv Python toolchain (several versions), plus the `apt` and `pip` lists.
+- `identity` — `authorized_keys`, and on-device key generation with a public-key report.
+- `repos` — clone the `repos` list.
+- `creds` — personal-tier env file (`0600`); lab creds excluded by design.
+
+**Also from the spec, not yet scheduled:** hardware enablement (capture the
+display + keyboard work as a profile-driven role), small-screen config (tmux,
+pager, editor sized from profile geometry), and companion services (text-cleaning
+backends for 320×320).
 
 ## License
 

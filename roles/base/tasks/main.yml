@@ -5,14 +5,12 @@
 
 # Fail BEFORE we harden SSH if there is no key to log in with — disabling
 # password auth without a working key is how you lock yourself out of a handheld.
-- name: Assert an SSH public key was supplied
+- name: Assert at least one SSH public key was supplied
   ansible.builtin.assert:
     that:
-      - device_user_pubkey is defined
-      - device_user_pubkey | length > 0
-      - "'ssh-' in device_user_pubkey or 'ecdsa-' in device_user_pubkey"
+      - device_authorized_keys | length > 0
     fail_msg: >-
-      device_user_pubkey is empty or not a public key. Set it in config.yml
+      ssh.authorized_keys is empty in config.yml. Add at least one public key
       before provisioning — base hardening disables password auth.
 
 - name: Set timezone
@@ -43,12 +41,13 @@
     state: present
 
 # --- SSH hardening ------------------------------------------------------------
-- name: Authorize the device user's SSH key
+- name: Authorize the device user's login SSH keys
   ansible.posix.authorized_key:
     user: "{{ device_user }}"
-    key: "{{ device_user_pubkey }}"
+    key: "{{ item }}"
     state: present
     exclusive: false
+  loop: "{{ device_authorized_keys }}"
 
 # A drop-in wins over the main sshd_config: Debian's Include line is near the top
 # and sshd honours the first value it sees for each keyword.

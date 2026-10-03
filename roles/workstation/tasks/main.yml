@@ -1,0 +1,14 @@
+---
+# workstation — SCAFFOLD (planned role, not implemented yet).
+#
+# Will install the uv toolchain and the Python versions in `python.versions`
+# (installed once, managed by uv; the last is the default), the `packages.apt`
+# apps, and the `packages.pip` packages INTO a uv-managed venv — never system pip.
+# Zero secrets. Proves the fat install fits the 512 MB RUNTIME budget (install
+# size is disk, which is cheap on a 16 GB+ card).
+- name: workstation scaffold (planned — not implemented)
+  ansible.builtin.debug:
+    msg: >-
+      Would install uv + Python {{ python.versions | default([]) | join(', ') }},
+      {{ packages.apt | default([]) | length }} apt + {{ packages.pip | default([]) | length }}
+      pip package(s). Not yet implemented — sequencing set by the SPEC amendment.
