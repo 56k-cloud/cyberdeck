@@ -1,0 +1,43 @@
+# cyberdeck — environment inputs. Copy to config.yml and fill in.
+#
+#   cp config.example.yml config.yml && $EDITOR config.yml
+#
+# config.yml is gitignored and NEVER committed. Nothing lab- or
+# environment-specific belongs in this file (the committed example) — every real
+# value lives only in your local config.yml. No secrets here either: WiFi and
+# SSH material are supplied at provision time (see boot/firstrun.sh.example),
+# not stored in the repo.
+
+# --- Identity ------------------------------------------------------------------
+# The login user Ansible connects as. Must match ansible_user in your inventory
+# and the user created by the first-boot script. Pick anything; "deck" is a fine
+# default.
+device_user: deck
+
+# The SSH public key authorized for device_user. REQUIRED — base hardening
+# disables password auth, so without a working key you would lock yourself out.
+# Paste the full single-line public key (the contents of e.g. ~/.ssh/id_ed25519.pub).
+device_user_pubkey: "ssh-ed25519 AAAA...replace-with-your-public-key... you@example"
+
+# --- Locale --------------------------------------------------------------------
+timezone: "Etc/UTC"
+locale: "en_US.UTF-8"
+
+# --- Profile -------------------------------------------------------------------
+# Which device profile to provision as. Names a file in profiles/<name>.yml.
+# Screen geometry, board, input device and driver stack are profile data — roles
+# read the profile, nothing hardcodes a device. Add a new handheld by adding a
+# new profile file, never by editing a role.
+cyberdeck_profile: picocalc-pizero2w
+
+# --- Dotfiles (gated) ----------------------------------------------------------
+# HTTPS URL of the PUBLIC dotfiles repo (shell + tmux). Cloned over the internet;
+# must not be a private/lab-reachable-only host. Leave empty to skip the dotfiles
+# role entirely (the device still gets a working shell from the tooling role).
+# This role is untested until that public repo exists — see README "Status".
+dotfiles_public_repo: ""
+
+# --- Optional ------------------------------------------------------------------
+# Extra packages beyond the opinionated light base set. Keep it short — RAM is
+# the binding constraint (see the profile's ram_mb).
+tooling_extra_packages: []

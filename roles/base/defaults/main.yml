@@ -1,0 +1,10 @@
+---
+# Overridable from config.yml. Light by default — RAM is the binding constraint.
+device_user: deck
+timezone: "Etc/UTC"
+locale: "en_US.UTF-8"
+
+base_packages:
+  - ca-certificates
+  - curl
+  - less

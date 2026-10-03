@@ -1,0 +1,43 @@
+---
+# cyberdeck — turn a flashed card with SSH open into a usable homelab terminal.
+#
+# Increment 1: base + tooling + dotfiles. Profile-driven; nothing hardcodes a
+# device. Run with:
+#   ansible-playbook site.yml
+# (after: cp config.example.yml config.yml; cp inventory/hosts.example.ini
+#  inventory/hosts.ini; and ansible-galaxy collection install -r requirements.yml)
+
+- name: Provision cyberdeck device
+  hosts: cyberdeck
+  become: true
+  vars_files:
+    - config.yml              # copied from config.example.yml; gitignored
+
+  pre_tasks:
+    - name: Load the active device profile
+      ansible.builtin.include_vars:
+        file: "profiles/{{ cyberdeck_profile }}.yml"
+        name: profile
+      tags: [always]
+
+    - name: Announce which profile/board is being provisioned
+      ansible.builtin.debug:
+        msg: >-
+          Profile {{ cyberdeck_profile }} -> board {{ profile.board }},
+          screen {{ profile.screen.width }}x{{ profile.screen.height }},
+          RAM ceiling {{ profile.ram_mb }} MB
+      tags: [always]
+
+  roles:
+    - base
+    - tooling
+    - dotfiles
+
+  post_tasks:
+    # Acceptance (f): record memory headroom — the budget every later increment
+    # spends from. Capture this number in your notes after the first real run.
+    - name: Report memory headroom after provisioning
+      ansible.builtin.debug:
+        msg: >-
+          Memory after provisioning: {{ ansible_memtotal_mb }} MB total,
+          {{ ansible_memfree_mb }} MB free. Record this (acceptance f).
