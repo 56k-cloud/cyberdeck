@@ -41,9 +41,15 @@ ssh:
     - { name: gitea,  type: ed25519 }
 
 # --- Python toolchain (I3) -----------------------------------------------------
-# uv-managed. Install several versions once so you are not rebuilding the common
-# ones on every restore; the LAST entry is the default. (Disk is cheap on a 16 GB+
-# card — the 512 MB ceiling is a RUNTIME budget, not an install-size one.)
+# Install several versions ONCE so you are not rebuilding the common ones on every
+# restore; the LAST entry is the default. (Disk is cheap on a 16 GB+ card — the
+# 512 MB ceiling is a RUNTIME budget, not an install-size one.)
+#
+# BOTH workflows work out of the box — use whichever a project wants:
+#   uv-managed:  uv venv  /  uv run
+#   classic:     python3.10 -m venv .venv && source .venv/bin/activate
+# uv installs the versions and exposes them on PATH as python3.8 / python3.10 /…,
+# and `python3-venv` / `python3-pip` cover the system interpreter too.
 python:
   enable: true
   versions: ["3.8", "3.10", "3.13"]
