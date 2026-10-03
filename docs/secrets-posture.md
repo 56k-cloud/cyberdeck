@@ -26,13 +26,13 @@ the blast radius of a lost device.
 | Tier | Examples | Allowed on the deck? |
 |---|---|---|
 | **Personal** | WiFi PSKs, a fine-grained GitHub PAT, a spend-capped Claude key | **Yes** — your blast radius, revocable in one click |
-| **Lab** | Gitea / homelab tokens, infrastructure credentials | **No, by default** |
+| **Lab** | Gitea / homelab tokens, infrastructure credentials | **No — decided** |
 
 A token is access just as much as a tunnel is. Putting a homelab token on a device
-that leaves the house is the same risk that rules out always-on VPN autoconnect.
-If a deck genuinely needs to reach a self-hosted service, give it a **scoped,
-revocable device identity** (see below), not a lab token — and write down how to
-revoke it.
+that leaves the house is the same risk that rules out always-on VPN autoconnect, so
+the deck carries **no lab write access and no lab tokens, full stop**. The only
+lab-side touch it has is cloning: its own on-device key (below) may be granted
+**read-only** on specific repos, revocable server-side if the device is lost.
 
 ## SSH keys: generated on the device, never transported
 

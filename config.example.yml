@@ -24,9 +24,17 @@ device:
 # --- WiFi networks (I2) --------------------------------------------------------
 # A LIST, so a freshly-flashed deck reconnects to your known networks unattended.
 # Higher priority wins when several are in range. PSKs are secrets.
+# Each network is DHCP by default; add an optional `static` block to pin an
+# address on that network.
 wifi:
-  - { ssid: "YOUR_HOME_WIFI",     psk: "changeme", priority: 100 }
-  - { ssid: "YOUR_PHONE_HOTSPOT", psk: "changeme", priority: 50 }
+  - ssid: "YOUR_HOME_WIFI"
+    psk: "changeme"
+    priority: 100
+    static:                              # OPTIONAL — omit the whole block for DHCP
+      address: "192.0.2.50/24"           # RFC 5737 documentation range — replace
+      gateway: "192.0.2.1"
+      dns: ["1.1.1.1", "9.9.9.9"]
+  - { ssid: "YOUR_PHONE_HOTSPOT", psk: "changeme", priority: 50 }   # DHCP
 
 # --- SSH (I1 authorized_keys / I4 device identities) ---------------------------
 ssh:
@@ -60,8 +68,23 @@ packages:
   pip: []        # installed into a uv-managed venv, never system pip
 
 # --- Repos to clone (I4) -------------------------------------------------------
+# Each repo is categorised by what to run after cloning, so pip/uv projects
+# rebuild themselves on every restore. Builds use the workstation toolchain (uv +
+# Python), so this runs after that role.
+#   build: none    -> just clone
+#   build: pip     -> create a venv and `pip install -r requirements.txt`
+#   build: uv      -> `uv sync` (uv-managed venv from pyproject/uv.lock)
+#   build: custom  -> run the `commands` list verbatim
+# `startup` (optional) runs the repo after build (future: a systemd user unit).
 repos:
-  - { url: "https://github.com/you/your-repo.git", dest: "~/src/your-repo", branch: main }
+  - { url: "https://github.com/you/py-thing.git", dest: "~/src/py-thing", branch: main, build: pip }
+  - { url: "https://github.com/you/uv-thing.git", dest: "~/src/uv-thing", build: uv }
+  - url: "https://github.com/you/custom-thing.git"
+    dest: "~/src/custom-thing"
+    build: custom
+    commands:
+      - "make setup"
+    startup: "./run.sh"
 
 # --- Credentials (I5) — PERSONAL TIER ONLY -------------------------------------
 # Written to ~/.config/cyberdeck/env (0600) and sourced by the shell. These are
