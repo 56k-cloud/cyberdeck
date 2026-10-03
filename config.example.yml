@@ -86,14 +86,17 @@ repos:
       - "make setup"
     startup: "./run.sh"
 
-# --- Credentials (I5) — PERSONAL TIER ONLY -------------------------------------
+# --- Credentials (I5) — the deck's own DEV IDENTITY (revocable) ----------------
 # Written to ~/.config/cyberdeck/env (0600) and sourced by the shell. These are
-# YOUR revocable creds, not the lab's. Lab tokens (gitea/homelab) are deliberately
-# NOT here: a device that leaves the house must not carry lab access
-# (SPEC §8.2 roaming-device rule; docs/secrets-posture.md).
+# the deck's OWN scoped, revocable creds — it acts as your own dev identity
+# (clone projects, push to forks, open PRs). They are NOT the homelab's
+# owner/admin/infra credentials or SOPS key — those never go on a device that
+# leaves the house (docs/secrets-posture.md). Prefer the on-device SSH keys
+# (ssh.generate_keys) for git; the tokens here are for CLI/API (gh / tea).
 creds:
-  github_token: ""
-  claude_api_key: ""
+  github_token: ""      # scoped PAT for your dev identity (PRs via gh)
+  gitea_token: ""       # scoped PAT for your dev identity on a self-hosted Gitea
+  claude_api_key: ""    # spend-capped
 
 # --- dotfiles (I1) -------------------------------------------------------------
 dotfiles:

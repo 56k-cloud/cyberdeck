@@ -23,16 +23,26 @@ the blast radius of a lost device.
 
 ## Two credential tiers
 
-| Tier | Examples | Allowed on the deck? |
-|---|---|---|
-| **Personal** | WiFi PSKs, a fine-grained GitHub PAT, a spend-capped Claude key | **Yes** — your blast radius, revocable in one click |
-| **Lab** | Gitea / homelab tokens, infrastructure credentials | **No — decided** |
+The deck operates as **your own dev identity** — treat it like a dev laptop
+that happens to leave the house. What it may hold, and what it must never, split
+cleanly:
 
-A token is access just as much as a tunnel is. Putting a homelab token on a device
-that leaves the house is the same risk that rules out always-on VPN autoconnect, so
-the deck carries **no lab write access and no lab tokens, full stop**. The only
-lab-side touch it has is cloning: its own on-device key (below) may be granted
-**read-only** on specific repos, revocable server-side if the device is lost.
+| Tier | Examples | On the deck? |
+|---|---|---|
+| **Dev identity (revocable)** | its own on-device SSH keys; scoped GitHub + Gitea PATs; WiFi PSKs; a spend-capped Claude key | **Yes** |
+| **Lab owner / infra** | the homelab's admin tokens, automation/root keys, the SOPS age key | **Never** |
+
+Everything in the first tier is a **scoped, revocable device identity**: the deck
+clones projects, pushes to forks, opens PRs, and SSHes into lab boxes to work
+— exactly what a dev laptop does. None of it is the lab's keys-to-the-kingdom.
+
+What makes this safe on a device that leaves the house is **revocability, not
+harmlessness**: a lost deck is contained by revoking its identity — pull its
+GitHub/Gitea PATs and drop its key from any machine's `authorized_keys`, and it can
+do nothing — while the lab's owner credentials were never on it to begin with.
+Residual risk, stated honestly: until you revoke, a lost deck can act as you (push,
+open PRs, SSH where its key is trusted). That is the conscious tradeoff for
+dev-machine parity, and the reason the lab-owner tier stays off it entirely.
 
 ## SSH keys: generated on the device, never transported
 
@@ -51,6 +61,7 @@ a narrowly-scoped key, instead of carrying your credentials.
 - Secrets sit **plaintext at rest on an unencrypted microSD** in a device that
   leaves the house. The mitigation is tier discipline + revocability, not disk
   encryption (full-disk crypto on a Pi Zero 2 W is not worth the cost). Treat a
-  lost deck as "rotate the personal-tier creds it held."
+  lost deck as "revoke the device's identities" — its GitHub/Gitea PATs, and its
+  key from every machine's `authorized_keys`.
 - `config.yml` is a single gitignored file with **no backup story** — lose the
   provisioning machine, lose the restore inputs. Back it up in your own vault.
