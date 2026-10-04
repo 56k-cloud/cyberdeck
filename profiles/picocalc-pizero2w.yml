@@ -1,12 +1,10 @@
 ---
 # Profile #1 — a PicoCalc shell with a Raspberry Pi Zero 2 W (a Linux SBC) inside.
 #
-# A profile is DATA, not code. Roles read these fields; nothing hardcodes a
-# device. Add another handheld (different panel, different board in the same
-# shell, something else entirely) by adding a new profiles/<name>.yml — never by
-# branching a role. Screen geometry is the load-bearing field: tmux layout, pager
-# width, editor defaults, every renderer, AND the display overlay below all derive
-# from it. The moment a role hardcodes 320, this stops being a general project.
+# A profile is DATA: the high-level facts about a device. Roles read these; the
+# shell/renderer layers derive from `screen`. The PicoCalc hardware STEPS live in
+# the `init` role (a faithful translation of the upstream guide), selected by the
+# `hardware` field below — they are not parameterised here.
 
 board: pi-zero-2w            # Linux SBC; confirm with /proc/device-tree/model + uname -m
 arch: aarch64                # 64-bit ARM (Cortex-A53). Pending on-device confirmation.
@@ -19,35 +17,9 @@ screen:
 
 input: picocalc-i2c-keyboard # STM32-backed keyboard over I2C
 
-# --- Hardware enablement (consumed by the `init` role) -------------------------
-# Everything the init role needs to bring the panel + keyboard up. A different
-# panel is a different `display` block in a new profile — the role does not change.
+hardware: picocalc           # selects the init role's hardware-enablement flow
 
-display:
-  overlay: mipi-dbi-spi
-  spi: spi0-0
-  speed_hz: 70000000
-  compatible: 'picomipi\0panel-mipi-dbi-spi'   # single-quoted: keep the literal \0
-  firmware: picomipi.bin       # vendored under roles/init/files/picocalc/display/
-  width_mm: 43
-  height_mm: 43
-  reset_gpio: 25
-  dc_gpio: 24
-  backlight_gpio: 18
-  clock_frequency: 50
-  fbcon: 'fbcon=map:1 fbcon=font:MINI4x6'       # appended to cmdline.txt
-
-keyboard:
-  module: picocalc_kbd         # out-of-tree module, built on-device
-  i2c: i2c_arm                 # -> dtparam=i2c_arm=on
-
-audio:
-  overlay: 'audremap,pins_12_13'
-
-poweroff:
-  enabled: true                # i2c cut-power of the PicoCalc mainboard on shutdown
-
-# Descriptive (not consumed yet) — the driver stack + known quirks.
+# Descriptive — the driver stack + known quirks.
 drivers:
   - mipi-dbi-spi-panel
   - picocalc-keyboard

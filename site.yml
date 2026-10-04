@@ -80,10 +80,15 @@
     # - creds         # personal-tier env file (0600); lab tier absent by design
 
   post_tasks:
-    # Acceptance (f): record memory headroom — the budget every later increment
-    # spends from. Capture this number after the first real run.
-    - name: Report memory headroom after provisioning
+    # Success banner: confirm the deck is reachable and leave the handy commands
+    # (ssh + live journal) in the console. Memory headroom is acceptance (f).
+    - name: Provisioning complete — connection + handy commands
+      vars:
+        _addr: "{{ ansible_user | default(device_user) }}@{{ ansible_host | default(inventory_hostname) }}"
       ansible.builtin.debug:
-        msg: >-
-          Memory after provisioning: {{ ansible_memtotal_mb }} MB total,
-          {{ ansible_memfree_mb }} MB free. Record this (acceptance f).
+        msg:
+          - "✓ cyberdeck provisioned — deck reachable over SSH:"
+          - "    ssh {{ _addr }}"
+          - "  watch its live output:"
+          - "    ssh {{ _addr }} 'journalctl -f'"
+          - "  memory: {{ ansible_memfree_mb }} MB free / {{ ansible_memtotal_mb }} MB total (acceptance f)"
