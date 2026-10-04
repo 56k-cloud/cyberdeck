@@ -103,6 +103,26 @@ creds:
   gitea_token: ""       # scoped PAT for your dev identity on a self-hosted Gitea
   claude_api_key: ""    # spend-capped
 
+# --- Comms: BBS + Usenet (try-it-out) ------------------------------------------
+# Public servers you provide. The role installs clients and drops a launcher per
+# entry — `bbs-<name>` and `news-<name>` on the deck's PATH. All public, no secrets.
+comms:
+  bbs:
+    - { name: example, host: "bbs.example.org", port: 23 }      # telnet BBS
+  usenet:
+    - { name: example, server: "news.example.org", port: 119 }
+
+# --- Tailscale next-hop (reach the homelab from anywhere) ----------------------
+# The deck joins your tailnet so it can reach the homelab over a phone hotspot or
+# your own WiFi. The auth key is a SECRET — provision-time only, gitignored, never
+# in the repo. Use a TAGGED key so your tailnet ACLs scope what the deck may reach,
+# and revoke the node from the admin console if the deck is lost.
+tailscale:
+  auth_key: ""                 # tskey-... — empty => skip the role entirely
+  hostname: "cyberdeck"
+  tags: ["tag:cyberdeck"]
+  autoconnect: true            # false => installed but not up on boot (manual `tailscale up`)
+
 # --- dotfiles (I1) -------------------------------------------------------------
 dotfiles:
   public_repo: ""                   # HTTPS URL of the PUBLIC dotfiles repo; empty => skip

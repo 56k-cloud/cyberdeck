@@ -1,0 +1,61 @@
+---
+# tailscale — the next hop to the homelab. The deck joins your tailnet so it can
+# reach lab services over a phone hotspot or your own WiFi. Installed from the
+# official apt repo (signed-by keyring; never a piped install script). No-ops
+# unless an auth key is configured.
+#
+# Use a TAGGED auth key (e.g. tag:cyberdeck): the node inherits the tag, your
+# tailnet ACLs scope exactly what it may reach, and a lost deck is revoked from
+# the admin console. (A tagged key applies the tag itself — we don't pass
+# --advertise-tags, which would conflict.)
+
+- name: Skip Tailscale (no auth key configured)
+  ansible.builtin.debug:
+    msg: "tailscale.auth_key is empty — skipping. Set it in config.yml to join the tailnet."
+  when: tailscale.auth_key | length == 0
+
+- name: Install and join the tailnet
+  when: tailscale.auth_key | length > 0
+  block:
+    - name: Install the Tailscale apt signing key
+      ansible.builtin.get_url:
+        url: "https://pkgs.tailscale.com/stable/debian/{{ ansible_distribution_release }}.noarmor.gpg"
+        dest: /usr/share/keyrings/tailscale-archive-keyring.gpg
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Add the Tailscale apt repository
+      ansible.builtin.apt_repository:
+        repo: >-
+          deb [signed-by=/usr/share/keyrings/tailscale-archive-keyring.gpg]
+          https://pkgs.tailscale.com/stable/debian {{ ansible_distribution_release }} main
+        filename: tailscale
+        state: present
+
+    - name: Install tailscale
+      ansible.builtin.apt:
+        name: tailscale
+        state: present
+        update_cache: true
+
+    - name: Query the current tailnet backend state
+      ansible.builtin.command: tailscale status --json
+      register: _ts_status
+      changed_when: false
+      failed_when: false
+
+    - name: Bring the deck onto the tailnet (only if not already up)
+      ansible.builtin.command: >-
+        tailscale up
+        --auth-key={{ tailscale.auth_key }}
+        --hostname={{ tailscale.hostname | default('cyberdeck') }}
+      when: >-
+        _ts_status.rc != 0
+        or '"BackendState":"Running"' not in (_ts_status.stdout | default(''))
+      no_log: true
+
+    - name: Set autoconnect-on-boot per config
+      ansible.builtin.systemd:
+        name: tailscaled
+        enabled: "{{ tailscale.autoconnect | default(true) }}"

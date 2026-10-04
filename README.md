@@ -94,7 +94,10 @@ roles/dotfiles/               clone public dotfiles, stow (gated)
 
 ## Roadmap
 
-**Done:** bare provisioning — inventory, `base`, `tooling`, `dotfiles`.
+**Working:** bare provisioning (`base`, `tooling`, `dotfiles`); `comms` (dial
+public BBSes + read Usenet); `tailscale` (next hop to the homelab). The play also
+prints an `ssh … 'journalctl -f'` command so you can watch the deck's live output
+while provisioning runs.
 
 **Planned roles** (scaffolded under `roles/`, each wired into `site.yml` as it
 lands; exact sequencing is set by the SPEC amendment):
