@@ -1,0 +1,26 @@
+# upstream-refs.yml — pinned upstream sources translated into roles.
+#
+# Each entry records the upstream a role was translated FROM, pinned to a commit.
+# We take the source, snapshot it (vendored under the role's files/), and translate
+# the manual steps into idempotent tasks — we never execute a foreign install
+# script. Bump the pin when re-translating, re-vendor at that SHA, and record it.
+
+roles:
+  init:
+    repo: nibheis/picocalc_trixie         # canonical public upstream (per its README)
+    upstream_chain:
+      - wasdwasd0105/picocalc-pi-zero-2   # original keyboard driver + audio
+      - nibheis/picocalc_trixie           # Debian Trixie port
+    snapshot: d1ce84d8 (2026-06-03)       # vendored bytes committed under vendored_under
+    paths:
+      - display/picomipi.bin
+      - display/picomipi.txt
+      - keyboard/picocalc_kbd/
+    vendored_under: roles/init/files/picocalc/
+    license: GPL-2.0-only (keyboard driver); panel-mipi-dbi firmware for the display
+    note: >-
+      Manual display + keyboard + audio + poweroff steps translated into
+      roles/init — idempotent, profile-driven. The keyboard module is compiled
+      on-device against the running kernel; the device-tree overlay is compiled
+      from the vendored .dts. Hardware parameters (gpios, speeds, geometry) live in
+      the device profile, not the role.

@@ -1,0 +1,12 @@
+---
+# init — PicoCalc hardware enablement. Profile-driven: the whole role runs only
+# for profiles that declare a `display` block; generic boards skip it entirely.
+boot_dir: /boot/firmware               # Raspberry Pi OS (bookworm/trixie) boot partition
+picocalc_src_dir: /usr/src/picocalc_kbd
+
+# Build toolchain for the out-of-tree keyboard module + i2c tools for poweroff.
+init_packages:
+  - build-essential
+  - device-tree-compiler
+  - raspberrypi-kernel-headers
+  - i2c-tools

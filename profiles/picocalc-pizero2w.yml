@@ -5,8 +5,8 @@
 # device. Add another handheld (different panel, different board in the same
 # shell, something else entirely) by adding a new profiles/<name>.yml — never by
 # branching a role. Screen geometry is the load-bearing field: tmux layout, pager
-# width, editor defaults and every later-increment renderer derive from it. The
-# moment a role hardcodes 320, this stops being a general project.
+# width, editor defaults, every renderer, AND the display overlay below all derive
+# from it. The moment a role hardcodes 320, this stops being a general project.
 
 board: pi-zero-2w            # Linux SBC; confirm with /proc/device-tree/model + uname -m
 arch: aarch64                # 64-bit ARM (Cortex-A53). Pending on-device confirmation.
@@ -19,12 +19,38 @@ screen:
 
 input: picocalc-i2c-keyboard # STM32-backed keyboard over I2C
 
-# Driver stack — consumed by the hardware role in increment 2, listed now so the
-# profile is complete from day one.
+# --- Hardware enablement (consumed by the `init` role) -------------------------
+# Everything the init role needs to bring the panel + keyboard up. A different
+# panel is a different `display` block in a new profile — the role does not change.
+
+display:
+  overlay: mipi-dbi-spi
+  spi: spi0-0
+  speed_hz: 70000000
+  compatible: 'picomipi\0panel-mipi-dbi-spi'   # single-quoted: keep the literal \0
+  firmware: picomipi.bin       # vendored under roles/init/files/picocalc/display/
+  width_mm: 43
+  height_mm: 43
+  reset_gpio: 25
+  dc_gpio: 24
+  backlight_gpio: 18
+  clock_frequency: 50
+  fbcon: 'fbcon=map:1 fbcon=font:MINI4x6'       # appended to cmdline.txt
+
+keyboard:
+  module: picocalc_kbd         # out-of-tree module, built on-device
+  i2c: i2c_arm                 # -> dtparam=i2c_arm=on
+
+audio:
+  overlay: 'audremap,pins_12_13'
+
+poweroff:
+  enabled: true                # i2c cut-power of the PicoCalc mainboard on shutdown
+
+# Descriptive (not consumed yet) — the driver stack + known quirks.
 drivers:
   - mipi-dbi-spi-panel
   - picocalc-keyboard
-
 quirks:
   - no-hardware-cursor
   - pwm-audio

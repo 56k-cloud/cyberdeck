@@ -7,10 +7,11 @@ terminal (zsh, tmux, git) sized for a tiny screen. It is **profile-driven**: scr
 geometry, board and driver stack are data, so a new handheld is a new file, not a
 rewrite.
 
-> **Status: early.** Working: `base`, `tooling`, `comms`, and `tailscale`. The
-> `dotfiles` role is written but **unproven** (it needs the public dotfiles repo,
-> which is still bare). Hardware enablement (display + keyboard), small-screen
-> config, and companion services are later increments — see the Roadmap.
+> **Status: early.** Working: `init` (PicoCalc display + keyboard enablement),
+> `base`, `tooling`, `comms`, and `tailscale`. The `dotfiles` role is written but
+> **unproven** (it needs the public dotfiles repo, which is still bare).
+> Small-screen config and companion services are later increments — see the
+> Roadmap.
 
 ## The three layers
 
@@ -95,7 +96,10 @@ ansible-playbook site.yml
 ansible-playbook site.yml -K
 ```
 
-Re-run any time — it is **idempotent** (a second run reports no changes).
+On a PicoCalc, the first run brings the hardware up and **reboots the deck once**
+mid-play to load the display/keyboard overlays; Ansible waits for it to come back
+and continues. After that your screen and keyboard are live. Re-run any time — it
+is **idempotent** (a second run reports no changes and does not reboot).
 
 **Watch it live (optional).** Early in the run the play prints a command; run it in
 a second terminal to tail the deck's output (apt progress, service logs):
@@ -153,11 +157,12 @@ empty to skip).
 ## Layout
 
 ```
-site.yml                      play: base -> tooling -> dotfiles -> comms -> tailscale
+site.yml                      play: init -> base -> tooling -> dotfiles -> comms -> tailscale
 config.example.yml            environment inputs (copy to config.yml)
 inventory/hosts.example.ini   inventory (copy to inventory/hosts.ini)
 boot/firstrun.sh.example      first-boot script template
 profiles/picocalc-pizero2w.yml   profile #1
+roles/init/                   PicoCalc hardware: display + keyboard + audio, then reboot
 roles/base/                   locale, timezone, packages, SSH hardening
 roles/tooling/                zsh, tmux, git, stow — light by constraint
 roles/dotfiles/               clone public dotfiles, stow (gated)
@@ -168,10 +173,12 @@ docs/secrets-posture.md       what secrets go where, and why
 
 ## Roadmap
 
-**Working:** bare provisioning (`base`, `tooling`, `dotfiles`); `comms` (dial
-public BBSes + read Usenet); `tailscale` (next hop to the homelab). The play also
-prints an `ssh … 'journalctl -f'` command so you can watch the deck's live output
-while provisioning runs.
+**Working:** `init` (PicoCalc hardware — display, keyboard, audio, poweroff — then
+a reboot; see [docs/hardware-init.md](docs/hardware-init.md)); bare provisioning
+(`base`, `tooling`, `dotfiles`); `comms` (dial public BBSes + read Usenet);
+`tailscale` (next hop to the homelab). The play also prints an
+`ssh … 'journalctl -f'` command so you can watch the deck's live output while
+provisioning runs.
 
 **Planned roles** (scaffolded under `roles/`, each wired into `site.yml` as it
 lands; exact sequencing is set by the SPEC amendment):

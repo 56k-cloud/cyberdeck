@@ -53,6 +53,11 @@
       tags: [always]
 
   roles:
+    # init runs FIRST: it brings the PicoCalc hardware up (display, keyboard,
+    # audio, poweroff) and REBOOTS so the overlays load — then the system stages
+    # below run on a device with a working screen + keyboard. No-ops on profiles
+    # without a `display` block, so generic boards are unaffected.
+    - init
     - base
     - tooling
     - dotfiles
@@ -61,7 +66,7 @@
     # --- Planned roles (scaffolds under roles/, wired in as each lands) -------
     # - wifi          # prioritised network profiles from the wifi list
     # - workstation   # uv python toolchain (several versions) + apt/pip lists
-    # - identity      # authorized_keys + on-device keygen (pubkey report)
+    # - identity      # copy the user-provided ssh.identity_keys for outbound auth
     # - repos         # clone the repos list
     # - creds         # personal-tier env file (0600); lab tier absent by design
 
