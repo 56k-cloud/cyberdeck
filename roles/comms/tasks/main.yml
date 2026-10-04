@@ -1,0 +1,48 @@
+---
+# comms — the fun layer: dial public BBSes and read Usenet from the deck.
+# Installs light terminal clients and drops one launcher per configured server
+# (`bbs-<name>`, `news-<name>`) on the device user's PATH. All servers are public
+# and supplied by you in config.yml — nothing secret, nothing lab-specific.
+
+- name: Install comms clients (BBS + Usenet)
+  ansible.builtin.apt:
+    name: "{{ comms_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Ensure the user's ~/.local/bin exists
+  ansible.builtin.file:
+    path: "/home/{{ device_user }}/.local/bin"
+    state: directory
+    owner: "{{ device_user }}"
+    group: "{{ device_user }}"
+    mode: "0755"
+
+- name: Launcher per BBS (telnet)
+  ansible.builtin.copy:
+    dest: "/home/{{ device_user }}/.local/bin/bbs-{{ item.name }}"
+    owner: "{{ device_user }}"
+    group: "{{ device_user }}"
+    mode: "0755"
+    content: |
+      #!/bin/sh
+      # Dial BBS "{{ item.name }}" — {{ item.host }}:{{ item.port | default(23) }}
+      exec telnet {{ item.host }} {{ item.port | default(23) }}
+  loop: "{{ comms.bbs | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Launcher per Usenet server (tin)
+  ansible.builtin.copy:
+    dest: "/home/{{ device_user }}/.local/bin/news-{{ item.name }}"
+    owner: "{{ device_user }}"
+    group: "{{ device_user }}"
+    mode: "0755"
+    content: |
+      #!/bin/sh
+      # Read Usenet "{{ item.name }}" — {{ item.server }}:{{ item.port | default(119) }}
+      exec env NNTPSERVER="{{ item.server }}" NNTPPORT="{{ item.port | default(119) }}" tin -r
+  loop: "{{ comms.usenet | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"

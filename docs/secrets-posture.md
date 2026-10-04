@@ -23,34 +23,50 @@ the blast radius of a lost device.
 
 ## Two credential tiers
 
-| Tier | Examples | Allowed on the deck? |
+The deck operates as **your own dev identity** — treat it like a dev laptop
+that happens to leave the house. What it may hold, and what it must never, split
+cleanly:
+
+| Tier | Examples | On the deck? |
 |---|---|---|
-| **Personal** | WiFi PSKs, a fine-grained GitHub PAT, a spend-capped Claude key | **Yes** — your blast radius, revocable in one click |
-| **Lab** | Gitea / homelab tokens, infrastructure credentials | **No, by default** |
+| **Dev identity (revocable)** | its own on-device SSH keys; scoped GitHub + Gitea PATs; WiFi PSKs; a spend-capped Claude key | **Yes** |
+| **Lab owner / infra** | the homelab's admin tokens, automation/root keys, the SOPS age key | **Never** |
 
-A token is access just as much as a tunnel is. Putting a homelab token on a device
-that leaves the house is the same risk that rules out always-on VPN autoconnect.
-If a deck genuinely needs to reach a self-hosted service, give it a **scoped,
-revocable device identity** (see below), not a lab token — and write down how to
-revoke it.
+Everything in the first tier is a **scoped, revocable device identity**: the deck
+clones projects, pushes to forks, opens PRs, and SSHes into lab boxes to work
+— exactly what a dev laptop does. None of it is the lab's keys-to-the-kingdom.
 
-## SSH keys: generated on the device, never transported
+What makes this safe on a device that leaves the house is **revocability, not
+harmlessness**: a lost deck is contained by revoking its identity — pull its
+GitHub/Gitea PATs and drop its key from any machine's `authorized_keys`, and it can
+do nothing — while the lab's owner credentials were never on it to begin with.
+Residual risk, stated honestly: until you revoke, a lost deck can act as you (push,
+open PRs, SSH where its key is trusted). That is the conscious tradeoff for
+dev-machine parity, and the reason the lab-owner tier stays off it entirely.
 
-- `ssh.authorized_keys` — **public** keys allowed to log *into* the deck. Not
-  secret.
-- `ssh.generate_keys` — key pairs the deck generates **for itself** at provision
-  time. The private key never leaves the device, never touches `config.yml`, the
-  repo, or the provisioning machine. The role prints the public key; you register
-  it with GitHub/Gitea as a device identity you can revoke independently.
+## SSH keys: you provide them, Ansible copies them
 
-This is the doctrine-compatible path to git hosting: the deck acts as *itself* with
-a narrowly-scoped key, instead of carrying your credentials.
+- `ssh.authorized_keys` — **public** keys allowed to log *into* the deck (your
+  laptop / "Neo" key). The `base` role installs them; the Pi Imager also injects
+  one, so SSH-in works from first boot. Not secret.
+- `ssh.identity_keys` — keypairs the deck uses to authenticate *out* (infra,
+  Gitea, GitHub). You generate them where your key distribution already lives (the
+  Terraform box) and point config at them; Ansible copies them onto the deck
+  (private key `0600`). The private key is a secret — it rides in gitignored
+  config, never in the repo.
+
+Recommended but not enforced: use a **dedicated** cyberdeck key rather than your
+everyday one. Your Terraform distributes its pubkey like any other, so you keep the
+convenience — but a lost deck then means pulling *that one key* from the authorized
+set, not rotating your main key across the fleet. Pair it with a passphrase for
+at-rest protection.
 
 ## Known gaps (accepted, not hidden)
 
 - Secrets sit **plaintext at rest on an unencrypted microSD** in a device that
   leaves the house. The mitigation is tier discipline + revocability, not disk
   encryption (full-disk crypto on a Pi Zero 2 W is not worth the cost). Treat a
-  lost deck as "rotate the personal-tier creds it held."
+  lost deck as "revoke the device's identities" — its GitHub/Gitea PATs, and its
+  key from every machine's `authorized_keys`.
 - `config.yml` is a single gitignored file with **no backup story** — lose the
   provisioning machine, lose the restore inputs. Back it up in your own vault.

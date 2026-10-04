@@ -1,0 +1,6 @@
+---
+tailscale:
+  auth_key: ""                 # empty => role no-ops
+  hostname: "cyberdeck"
+  tags: ["tag:cyberdeck"]      # documents what the AUTH KEY should carry (see tasks)
+  autoconnect: true

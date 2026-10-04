@@ -1,0 +1,13 @@
+---
+device_user: deck
+
+# Public servers come from config.yml; default to none.
+comms:
+  bbs: []
+  usenet: []
+
+# Light clients. telnet dials classic BBSes; tin reads Usenet (NNTP). Add
+# `syncterm` here for full ANSI-BBS if your Debian release ships it.
+comms_packages:
+  - telnet
+  - tin
