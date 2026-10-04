@@ -44,17 +44,22 @@ Residual risk, stated honestly: until you revoke, a lost deck can act as you (pu
 open PRs, SSH where its key is trusted). That is the conscious tradeoff for
 dev-machine parity, and the reason the lab-owner tier stays off it entirely.
 
-## SSH keys: generated on the device, never transported
+## SSH keys: you provide them, Ansible copies them
 
-- `ssh.authorized_keys` — **public** keys allowed to log *into* the deck. Not
-  secret.
-- `ssh.generate_keys` — key pairs the deck generates **for itself** at provision
-  time. The private key never leaves the device, never touches `config.yml`, the
-  repo, or the provisioning machine. The role prints the public key; you register
-  it with GitHub/Gitea as a device identity you can revoke independently.
+- `ssh.authorized_keys` — **public** keys allowed to log *into* the deck (your
+  laptop / "Neo" key). The `base` role installs them; the Pi Imager also injects
+  one, so SSH-in works from first boot. Not secret.
+- `ssh.identity_keys` — keypairs the deck uses to authenticate *out* (infra,
+  Gitea, GitHub). You generate them where your key distribution already lives (the
+  Terraform box) and point config at them; Ansible copies them onto the deck
+  (private key `0600`). The private key is a secret — it rides in gitignored
+  config, never in the repo.
 
-This is the doctrine-compatible path to git hosting: the deck acts as *itself* with
-a narrowly-scoped key, instead of carrying your credentials.
+Recommended but not enforced: use a **dedicated** cyberdeck key rather than your
+everyday one. Your Terraform distributes its pubkey like any other, so you keep the
+convenience — but a lost deck then means pulling *that one key* from the authorized
+set, not rotating your main key across the fleet. Pair it with a passphrase for
+at-rest protection.
 
 ## Known gaps (accepted, not hidden)
 

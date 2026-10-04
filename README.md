@@ -33,9 +33,9 @@ This repo is **public from the first commit**. The rule travels with the repo:
 2. **Environment identity is an input.** `config.example.yml` and
    `inventory/hosts.example.ini` are committed; the real `config.yml` and
    `inventory/hosts.ini` are gitignored and yours alone.
-3. **No secrets ever pass through the repo.** WiFi and SSH material are supplied at
-   provision time via `boot/firstrun.sh` (gitignored); WireGuard keys (a later
-   increment) are generated on-device.
+3. **No secrets ever pass through the repo.** WiFi, SSH keys, and tokens are
+   supplied at provision time from your gitignored `config.yml` (and the Pi Imager
+   / `boot/firstrun.sh`), never committed.
 
 If a change can't pass all three, it doesn't belong here.
 
@@ -101,7 +101,7 @@ lands; exact sequencing is set by the SPEC amendment):
 
 - `wifi` — prioritised network profiles from the `wifi` list, so a reflashed deck reconnects unattended.
 - `workstation` — uv Python toolchain (several versions), plus the `apt` and `pip` lists.
-- `identity` — `authorized_keys`, and on-device key generation with a public-key report.
+- `identity` — copies the user-provided `ssh.identity_keys` onto the deck for outbound auth (login keys are handled by `base`).
 - `repos` — clone the `repos` list.
 - `creds` — personal-tier env file (`0600`); lab creds excluded by design.
 

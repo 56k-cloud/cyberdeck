@@ -41,12 +41,17 @@ ssh:
   # PUBLIC keys allowed to log IN to the deck. Not secret.
   authorized_keys:
     - "ssh-ed25519 AAAA...your-laptop-key... you@example"
-  # Key pairs GENERATED on the device at provision time. The private key never
-  # leaves the deck and never passes through config or the repo. The role prints
-  # each public key; register it with GitHub/Gitea as a revocable device identity.
-  generate_keys:
-    - { name: github, type: ed25519 }
-    - { name: gitea,  type: ed25519 }
+  # Keypairs COPIED onto the deck so it can authenticate OUT (your infra / Gitea /
+  # GitHub). You provide them — generate on whatever box already distributes your
+  # keys (e.g. the Terraform machine) and point here; Ansible copies them to the
+  # deck (private key 0600). The private key is a SECRET: paths reference material
+  # on the provisioning machine, never committed. No on-device generation — you
+  # decide which keys get copied. (A dedicated key is nicer for revocation, but
+  # your call; pair it with a passphrase for at-rest protection.)
+  identity_keys:
+    - name: cyberdeck
+      private: "~/.config/cyberdeck/keys/id_ed25519"       # on the provisioning machine
+      public:  "~/.config/cyberdeck/keys/id_ed25519.pub"
 
 # --- Python toolchain (I3) -----------------------------------------------------
 # Install several versions ONCE so you are not rebuilding the common ones on every
@@ -91,8 +96,8 @@ repos:
 # the deck's OWN scoped, revocable creds — it acts as your own dev identity
 # (clone projects, push to forks, open PRs). They are NOT the homelab's
 # owner/admin/infra credentials or SOPS key — those never go on a device that
-# leaves the house (docs/secrets-posture.md). Prefer the on-device SSH keys
-# (ssh.generate_keys) for git; the tokens here are for CLI/API (gh / tea).
+# leaves the house (docs/secrets-posture.md). Prefer the SSH keys you provide
+# (ssh.identity_keys) for git; the tokens here are for CLI/API (gh / tea).
 creds:
   github_token: ""      # scoped PAT for your dev identity (PRs via gh)
   gitea_token: ""       # scoped PAT for your dev identity on a self-hosted Gitea
