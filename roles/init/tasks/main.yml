@@ -1,0 +1,169 @@
+---
+# init — bring the PicoCalc hardware up from a stock flashed card: SPI display,
+# I2C/STM32 keyboard (out-of-tree module), audio, and the mainboard poweroff
+# service. Then reboot so the overlays load — after which the system stages
+# (base, tooling, …) run on a device with a working screen and keyboard.
+#
+# Translated from upstream (credited + pinned in upstream-refs.yml); the
+# driver source + panel firmware are vendored under files/picocalc/. We never run
+# the upstream install script — these tasks ARE the translation, made idempotent
+# and profile-driven. All hardware parameters come from the active profile, so a
+# different panel/board is a new profile, not an edit here.
+
+- name: Skip hardware init (profile declares no display)
+  ansible.builtin.debug:
+    msg: "Profile {{ cyberdeck_profile }} has no `display` block — skipping hardware init."
+  when: profile.display is not defined
+
+- name: PicoCalc hardware enablement
+  when: profile.display is defined
+  block:
+    # --- Build + i2c tooling --------------------------------------------------
+    - name: Install build toolchain + i2c tools
+      ansible.builtin.apt:
+        name: "{{ init_packages }}"
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    # --- Display: panel firmware ----------------------------------------------
+    - name: Install the SPI panel firmware
+      ansible.builtin.copy:
+        src: "picocalc/display/{{ profile.display.firmware }}"
+        dest: "/lib/firmware/{{ profile.display.firmware }}"
+        owner: root
+        group: root
+        mode: "0644"
+      register: _firmware
+
+    # --- Keyboard: build + install the out-of-tree module ---------------------
+    - name: Stage the keyboard driver source
+      ansible.builtin.copy:
+        src: "picocalc/keyboard/"
+        dest: "{{ picocalc_src_dir }}/"
+        owner: root
+        group: root
+        mode: preserve
+      register: _kbd_src
+
+    - name: Check whether the keyboard module is already installed
+      ansible.builtin.stat:
+        path: "/lib/modules/{{ ansible_kernel }}/extra/picocalc_kbd.ko"
+      register: _ko
+
+    - name: Build the keyboard kernel module against the running kernel
+      ansible.builtin.command:
+        cmd: "make -C /lib/modules/{{ ansible_kernel }}/build M={{ picocalc_src_dir }} modules"
+      register: _kbd_build
+      changed_when: _kbd_build.rc == 0
+      when: _kbd_src is changed or not _ko.stat.exists
+
+    - name: Install the keyboard module
+      ansible.builtin.copy:
+        src: "{{ picocalc_src_dir }}/picocalc_kbd.ko"
+        dest: "/lib/modules/{{ ansible_kernel }}/extra/picocalc_kbd.ko"
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0644"
+      register: _ko_install
+      when: _kbd_build is changed
+
+    - name: Refresh module dependencies
+      ansible.builtin.command: "depmod {{ ansible_kernel }}"
+      changed_when: true
+      when: _ko_install is changed
+
+    - name: Compile the keyboard device-tree overlay
+      ansible.builtin.command:
+        cmd: >-
+          dtc -@ -I dts -O dtb
+          -o {{ boot_dir }}/overlays/picocalc_kbd.dtbo
+          {{ picocalc_src_dir }}/dts/picocalc_kbd-overlay.dts
+        creates: "{{ boot_dir }}/overlays/picocalc_kbd.dtbo"
+      register: _dtbo
+
+    # --- config.txt: all overlays/params in one managed block -----------------
+    - name: Managed boot overlays (display + keyboard + audio) in config.txt
+      ansible.builtin.blockinfile:
+        path: "{{ boot_dir }}/config.txt"
+        marker: "# {mark} cyberdeck init (managed)"
+        create: false
+        block: |
+          dtparam=spi=on
+          dtoverlay={{ profile.display.overlay }},{{ profile.display.spi }},speed={{ profile.display.speed_hz }}
+          dtparam=compatible={{ profile.display.compatible }}
+          dtparam=width={{ profile.screen.width }},height={{ profile.screen.height }},width-mm={{ profile.display.width_mm }},height-mm={{ profile.display.height_mm }}
+          dtparam=reset-gpio={{ profile.display.reset_gpio }},dc-gpio={{ profile.display.dc_gpio }}
+          dtparam=backlight-gpio={{ profile.display.backlight_gpio }}
+          dtparam=clock-frequency={{ profile.display.clock_frequency }}
+          dtparam={{ profile.keyboard.i2c }}=on
+          dtoverlay={{ profile.keyboard.module }}
+          {% if profile.audio is defined %}dtparam=audio=on
+          dtoverlay={{ profile.audio.overlay }}
+          {% endif %}
+      register: _cfg
+
+    # --- cmdline.txt: framebuffer console (single line, append if missing) ----
+    - name: Ensure framebuffer console tokens in cmdline.txt
+      ansible.builtin.shell:
+        cmd: |
+          set -e
+          if ! grep -q 'fbcon=map:1' {{ boot_dir }}/cmdline.txt; then
+            sed -i 's/[[:space:]]*$/ {{ profile.display.fbcon }}/' {{ boot_dir }}/cmdline.txt
+            echo CHANGED
+          fi
+      register: _cmdline
+      changed_when: "'CHANGED' in _cmdline.stdout"
+
+    # --- Poweroff service: cut mainboard power on shutdown --------------------
+    - name: Install the PicoCalc poweroff helper
+      ansible.builtin.copy:
+        dest: /usr/local/bin/picopoweroff
+        owner: root
+        group: root
+        mode: "0755"
+        content: |
+          #!/bin/bash
+          # Cut power to the PicoCalc mainboard on shutdown (i2c).
+          i2cset -yf 1 0x1f 0x8e 0x00
+      when: profile.poweroff.enabled | default(false)
+
+    - name: Install the picopoweroff systemd service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/picopoweroff.service
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Shutdown PicoCalc mainboard
+          Conflicts=reboot.target
+          DefaultDependencies=no
+          After=shutdown.target
+          Requires=shutdown.target
+
+          [Service]
+          Type=oneshot
+          RemainAfterExit=true
+          ExecStart=/usr/local/bin/picopoweroff
+
+          [Install]
+          WantedBy=shutdown.target
+      when: profile.poweroff.enabled | default(false)
+
+    - name: Enable picopoweroff.service
+      ansible.builtin.systemd:
+        name: picopoweroff.service
+        enabled: true
+        daemon_reload: true
+      when: profile.poweroff.enabled | default(false)
+
+    # --- Reboot so the overlays load (only when something changed) ------------
+    - name: Reboot to bring up the display + keyboard
+      ansible.builtin.reboot:
+        reboot_timeout: 300
+        msg: "cyberdeck init: rebooting to load display/keyboard overlays"
+      when: >-
+        _firmware is changed or _cfg is changed or _cmdline is changed
+        or _ko_install is changed or _dtbo is changed
