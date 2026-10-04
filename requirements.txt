@@ -1,0 +1,9 @@
+# Control-machine Python deps — the Ansible toolchain this project is pinned to.
+# ansible 14.0.0 == ansible-core 2.21.x, and bundles the collections we use
+# (community.general, ansible.posix), so requirements.yml is only needed if you
+# install ansible-core on its own.
+#
+#   pip install -r requirements.txt      (or: pipx install ansible==14.0.0)
+#
+# Tested on: ansible-core 2.21, Python 3.14.
+ansible==14.0.0

@@ -62,6 +62,10 @@ You run cyberdeck from a **control machine** (your laptop or desktop). It connec
 to the deck over SSH and configures it — you don't install anything on the deck by
 hand.
 
+**Requirements (pinned):** ansible-core **2.21** (via `ansible` **14.0.0**),
+Python **3.14**. The play asserts core ≥ 2.21 and fails early otherwise;
+`requirements.txt` pins the toolchain.
+
 **First, make the deck reachable over SSH.** Easiest path: in **Raspberry Pi
 Imager**, before flashing, click the gear / *Edit Settings* and set a hostname, a
 username, your **SSH public key** (or a password), and your **WiFi**. Flash, boot
@@ -76,8 +80,10 @@ Then, on your control machine:
 git clone https://github.com/jakes-homelab/cyberdeck.git
 cd cyberdeck
 
-# 2. Install Ansible + this project's collections
-pipx install ansible          # or:  sudo apt install ansible  |  brew install ansible
+# 2. Install the pinned Ansible toolchain (ansible 14 == core 2.21, tested)
+pip install -r requirements.txt          # or: pipx install ansible==14.0.0
+#    The ansible bundle includes the collections we use. If you installed
+#    ansible-core on its own, also run:
 ansible-galaxy collection install -r requirements.yml
 
 # 3. Create your config from the committed examples (what to fill → Configuration)

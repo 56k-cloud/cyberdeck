@@ -27,6 +27,15 @@
     dotfiles_public_repo: "{{ dotfiles.public_repo | default('') }}"
 
   pre_tasks:
+    - name: Require a supported Ansible (project is pinned to core >= 2.21)
+      ansible.builtin.assert:
+        that:
+          - ansible_version.full is version('2.21', '>=')
+        fail_msg: >-
+          cyberdeck is pinned to ansible-core >= 2.21 (tested on 2.21 / ansible 14).
+          You have {{ ansible_version.full }} — see requirements.txt.
+      tags: [always]
+
     - name: Load the active device profile
       ansible.builtin.include_vars:
         file: "profiles/{{ cyberdeck_profile }}.yml"
