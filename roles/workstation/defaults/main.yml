@@ -1,0 +1,22 @@
+---
+device_user: deck
+
+# Overridden by config.yml.
+python:
+  enable: true
+  versions: ["3.8", "3.10", "3.13"]
+packages:
+  apt: []
+  pip: []
+
+# System packages the role always ensures: python3 + the classic-venv/pip bits,
+# and pipx (our doctrine-friendly way to install uv — no piped install script).
+workstation_base_apt:
+  - python3
+  - python3-venv
+  - python3-pip
+  - pipx
+
+# Baseline pip packages (packages.pip) are installed into this uv-managed venv,
+# relative to the device user's home — never into system pip.
+workstation_pip_venv: ".venvs/base"

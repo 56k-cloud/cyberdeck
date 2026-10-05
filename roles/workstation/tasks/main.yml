@@ -1,16 +1,73 @@
 ---
-# workstation — SCAFFOLD (planned role, not implemented yet).
+# workstation — the Python dev toolchain. Installs uv + the requested Python
+# versions (managed by uv, installed once), the system venv/pip bits for the
+# classic `python3 -m venv` + activate workflow, your apt apps, and your baseline
+# pip packages into a uv-managed venv (never system pip). Skips when python.enable
+# is false.
 #
-# Will install the uv toolchain and the Python versions in `python.versions`
-# (installed once, the last is the default), exposing them on PATH as python3.X
-# AND installing python3-venv/python3-pip — so BOTH a `uv venv` and the classic
-# `python3.X -m venv .venv && source .venv/bin/activate` flow work, whichever a
-# project calls for. Then the `packages.apt` apps and the `packages.pip` packages
-# (into a uv-managed venv, never system pip). Zero secrets. Proves the fat install
-# fits the 512 MB RUNTIME budget (install size is disk, cheap on a 16 GB+ card).
-- name: workstation scaffold (planned — not implemented)
+# Both workflows work afterwards:
+#   uv-managed:  uv venv --python 3.10 .venv && source .venv/bin/activate   (or uv run)
+#   classic:     python3 -m venv .venv && source .venv/bin/activate
+
+- name: Skip workstation (python.enable is false)
   ansible.builtin.debug:
-    msg: >-
-      Would install uv + Python {{ python.versions | default([]) | join(', ') }},
-      {{ packages.apt | default([]) | length }} apt + {{ packages.pip | default([]) | length }}
-      pip package(s). Not yet implemented — sequencing set by the SPEC amendment.
+    msg: "python.enable is false — skipping the Python toolchain."
+  when: not (python.enable | default(true))
+
+- name: Python workstation
+  when: python.enable | default(true)
+  vars:
+    _home: "/home/{{ device_user }}"
+    _uv: "/home/{{ device_user }}/.local/bin/uv"
+  block:
+    - name: Install apt packages (toolchain base + your list)
+      ansible.builtin.apt:
+        name: "{{ workstation_base_apt + (packages.apt | default([])) }}"
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    # uv + the Python versions live in the device user's home (~/.local).
+    - name: Check whether uv is installed
+      ansible.builtin.stat:
+        path: "{{ _uv }}"
+      register: _uv_bin
+
+    - name: Install uv via pipx
+      become: true
+      become_user: "{{ device_user }}"
+      ansible.builtin.command: pipx install uv
+      when: not _uv_bin.stat.exists
+      changed_when: true
+
+    - name: Ensure ~/.local/bin is on PATH (pipx ensurepath)
+      become: true
+      become_user: "{{ device_user }}"
+      ansible.builtin.command: pipx ensurepath
+      register: _ensurepath
+      changed_when: "'added' in (_ensurepath.stdout | lower)"
+
+    - name: Install the requested Python versions (uv — the last is the default)
+      become: true
+      become_user: "{{ device_user }}"
+      ansible.builtin.command: "{{ _uv }} python install {{ python.versions | join(' ') }}"
+      register: _uv_py
+      changed_when: "'Installed' in (_uv_py.stdout + _uv_py.stderr)"
+
+    # Baseline pip packages -> a uv-managed venv (never system pip).
+    - name: Create the baseline uv venv
+      become: true
+      become_user: "{{ device_user }}"
+      ansible.builtin.command:
+        cmd: "{{ _uv }} venv --python {{ python.versions[-1] }} {{ _home }}/{{ workstation_pip_venv }}"
+        creates: "{{ _home }}/{{ workstation_pip_venv }}"
+      when: (packages.pip | default([])) | length > 0
+
+    - name: Install the baseline pip packages into the uv venv
+      become: true
+      become_user: "{{ device_user }}"
+      ansible.builtin.command:
+        cmd: "{{ _uv }} pip install --python {{ _home }}/{{ workstation_pip_venv }}/bin/python {{ (packages.pip | default([])) | join(' ') }}"
+      when: (packages.pip | default([])) | length > 0
+      register: _uv_pip
+      changed_when: "'Installed' in (_uv_pip.stdout + _uv_pip.stderr)"
