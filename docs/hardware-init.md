@@ -5,18 +5,24 @@ keyboard, audio — then reboots so the overlays load. It runs **first** in the
 play; after the reboot, the system stages (`base`, `tooling`, …) continue on a
 device that has a display and keyboard.
 
-## What it does (translated from upstream, pinned)
+## What it does (steps follow the upstream guide, one by one)
 
-| Step | What | From the profile |
-|---|---|---|
-| Display | panel firmware → `/lib/firmware`; `mipi-dbi-spi` overlay + geometry in `config.txt`; `fbcon` tokens in `cmdline.txt` | `display:` + `screen:` |
-| Keyboard | build the `picocalc_kbd` module on-device, install it, compile the DT overlay, enable I2C + the overlay in `config.txt` | `keyboard:` |
-| Audio | `dtparam=audio=on` + `audremap` overlay | `audio:` |
-| Poweroff | `picopoweroff` helper + a systemd unit that cuts mainboard power on shutdown | `poweroff.enabled` |
-| Reboot | once, only if any of the above changed, so the overlays take effect | — |
+The tasks are named `Step 4.x / 5.x / 6 / 7.x` to mirror the upstream README:
 
-Every hardware parameter (GPIOs, SPI speed, panel size, overlays) lives in the
-**device profile**, not the role — a different panel or board is a new profile.
+| Step | What |
+|---|---|
+| **4** display | panel firmware → `/lib/firmware`; `mipi-dbi-spi` overlay in `config.txt`; `fbcon` tokens in `cmdline.txt` |
+| **5** keyboard | build the `picocalc_kbd` module on-device, install it + `depmod`, compile the DT overlay, enable I2C + the overlay in `config.txt` |
+| **6** audio | `dtparam=audio=on` + `audremap` overlay (takes effect on the same reboot) |
+| **7** poweroff | `picopoweroff` helper + a systemd unit that cuts mainboard power on shutdown |
+| verify | assert the module, firmware, and overlay exist, then write `/etc/cyberdeck/init-complete` |
+| reboot | once, only if any of the above changed, so the overlays take effect |
+
+The hardware values (GPIOs, SPI speed, panel size, overlays) are **inline in the
+role** — this is a faithful, PicoCalc-specific translation. The role runs only when
+the profile selects it with `hardware: picocalc`; a different panel is a different
+init flow, not a parameter sweep. `/etc/cyberdeck/init-complete` records that the
+stage ran (and the kernel it built against).
 
 ## Provenance
 
@@ -33,7 +39,8 @@ the running kernel; after a kernel upgrade, re-run `init` to rebuild it.
 
 ## First-run caveats
 
-This is unverified on real hardware yet. The fragile points to watch on the first
-flash: the kernel-headers package name (`raspberrypi-kernel-headers`) on your OS
-release, and the module build succeeding against `/lib/modules/$(uname -r)/build`.
-Watch it live with the `ssh … 'journalctl -f'` line the play prints.
+The fragile point is the kernel headers: current Raspberry Pi OS uses
+`linux-headers-rpi-v8` (set in `roles/init/defaults/main.yml`). If apt can't find
+it on your image, run `uname -r; apt-cache search '^linux-headers'` on the deck and
+set `init_kernel_headers_pkg` to match. Then watch the module build live with the
+`ssh … 'journalctl -f'` line the play prints.
