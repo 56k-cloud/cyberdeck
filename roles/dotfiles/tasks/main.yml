@@ -25,7 +25,7 @@
   become: true
   become_user: "{{ device_user }}"
   vars:
-    _home: "{{ getent_passwd[device_user][4] }}"   # passwd field 5 = home dir
+    _home: "{{ ansible_facts.getent_passwd[device_user][4] }}"   # passwd field 5 = home dir
   block:
     - name: Clone (or update) the public dotfiles repo
       ansible.builtin.git:

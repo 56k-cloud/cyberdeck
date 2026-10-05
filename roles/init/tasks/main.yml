@@ -1,9 +1,8 @@
 ---
-# init — bring the PicoCalc hardware up, one step at a time, mirroring the upstream
-# guide (pinned in upstream-refs.yml; source vendored under files/picocalc/). The
-# step names follow the upstream's: install display driver → install keyboard
-# driver → configure audio → poweroff. It runs FIRST, then reboots so the overlays
-# load; the system stages (base, tooling, …) run after on a working deck.
+# init — bring the PicoCalc hardware up, following the upstream guide's steps
+# (pinned in upstream-refs.yml; source vendored under files/picocalc/). It runs
+# FIRST, then reboots so the overlays load; the system stages (base, tooling, …)
+# run after on a working deck.
 #
 # We translate the steps into idempotent tasks — we never run the upstream script.
 # This flow is PicoCalc-specific by design, guarded on the profile's `hardware`.
@@ -19,8 +18,8 @@
     boot_dir: "{{ init_boot_dir }}"
   block:
 
-    # === Step 4: install display driver (panel_mipi_dbi) =====================
-    - name: "Step 4.1 — display: copy the panel firmware"
+    # --- Display driver (panel_mipi_dbi) -------------------------------------
+    - name: Install the display panel firmware
       ansible.builtin.copy:
         src: picocalc/display/picomipi.bin
         dest: /lib/firmware/picomipi.bin
@@ -29,7 +28,7 @@
         mode: "0644"
       register: _display_fw
 
-    - name: "Step 4.2 — display: SPI panel overlay in config.txt"
+    - name: Configure the SPI panel overlay (config.txt)
       ansible.builtin.blockinfile:
         path: "{{ boot_dir }}/config.txt"
         marker: "# {mark} cyberdeck display"
@@ -44,7 +43,7 @@
           dtparam=clock-frequency=50
       register: _display_cfg
 
-    - name: "Step 4.3 — display: framebuffer console in cmdline.txt"
+    - name: Enable the framebuffer console (cmdline.txt)
       ansible.builtin.shell:
         cmd: |
           set -e
@@ -55,8 +54,8 @@
       register: _display_cmdline
       changed_when: "'CHANGED' in _display_cmdline.stdout"
 
-    # === Step 5: install keyboard driver (picocalc_kbd) ======================
-    - name: "Step 5.1 — keyboard: install build deps + i2c tools"
+    # --- Keyboard driver (picocalc_kbd) --------------------------------------
+    - name: Install keyboard build dependencies + i2c tools
       ansible.builtin.apt:
         name:
           - build-essential
@@ -67,7 +66,7 @@
         update_cache: true
         cache_valid_time: 3600
 
-    - name: "Step 5.2 — keyboard: stage the driver source"
+    - name: Stage the keyboard driver source
       ansible.builtin.copy:
         src: picocalc/keyboard/
         dest: "{{ init_src_dir }}/"
@@ -76,30 +75,30 @@
         mode: preserve
       register: _kbd_src
 
-    - name: "Step 5.3 — keyboard: is the module already built?"
+    - name: Check whether the keyboard module is already built
       ansible.builtin.stat:
-        path: "/lib/modules/{{ ansible_kernel }}/extra/picocalc_kbd.ko"
+        path: "/lib/modules/{{ ansible_facts.kernel }}/extra/picocalc_kbd.ko"
       register: _kbd_ko
 
-    - name: "Step 5.4 — keyboard: build the module against the running kernel"
+    - name: Build the keyboard driver (kernel module)
       ansible.builtin.command:
-        cmd: "make -C /lib/modules/{{ ansible_kernel }}/build M={{ init_src_dir }} modules"
+        cmd: "make -C /lib/modules/{{ ansible_facts.kernel }}/build M={{ init_src_dir }} modules"
       register: _kbd_build
       changed_when: _kbd_build.rc == 0
       when: _kbd_src is changed or not _kbd_ko.stat.exists
 
-    - name: "Step 5.5 — keyboard: install the module + depmod"
+    - name: Install the keyboard module
       ansible.builtin.shell:
         cmd: |
           set -e
           install -D -m 0644 {{ init_src_dir }}/picocalc_kbd.ko \
-            /lib/modules/{{ ansible_kernel }}/extra/picocalc_kbd.ko
-          depmod {{ ansible_kernel }}
+            /lib/modules/{{ ansible_facts.kernel }}/extra/picocalc_kbd.ko
+          depmod {{ ansible_facts.kernel }}
       register: _kbd_install
       changed_when: _kbd_install.rc == 0
       when: _kbd_build is changed
 
-    - name: "Step 5.6 — keyboard: compile + install the DT overlay"
+    - name: Compile and install the keyboard device-tree overlay
       ansible.builtin.command:
         cmd: >-
           dtc -@ -I dts -O dtb -o {{ boot_dir }}/overlays/picocalc_kbd.dtbo
@@ -107,7 +106,7 @@
         creates: "{{ boot_dir }}/overlays/picocalc_kbd.dtbo"
       register: _kbd_dtbo
 
-    - name: "Step 5.7 — keyboard: enable i2c + overlay in config.txt"
+    - name: Enable I2C and the keyboard overlay (config.txt)
       ansible.builtin.blockinfile:
         path: "{{ boot_dir }}/config.txt"
         marker: "# {mark} cyberdeck keyboard"
@@ -117,8 +116,8 @@
           dtoverlay=picocalc_kbd
       register: _kbd_cfg
 
-    # === Step 6: configure audio (takes effect on the same reboot) ===========
-    - name: "Step 6 — audio: enable in config.txt"
+    # --- Audio (takes effect on the same reboot) -----------------------------
+    - name: Enable audio (config.txt)
       ansible.builtin.blockinfile:
         path: "{{ boot_dir }}/config.txt"
         marker: "# {mark} cyberdeck audio"
@@ -128,8 +127,8 @@
           dtoverlay=audremap,pins_12_13
       register: _audio_cfg
 
-    # === Step 7: power the mainboard off on shutdown =========================
-    - name: "Step 7.1 — poweroff: install the helper"
+    # --- Power the mainboard off on shutdown ---------------------------------
+    - name: Install the mainboard poweroff helper
       ansible.builtin.copy:
         dest: /usr/local/bin/picopoweroff
         owner: root
@@ -140,7 +139,7 @@
           # Cut power to the PicoCalc mainboard on shutdown (i2c).
           i2cset -yf 1 0x1f 0x8e 0x00
 
-    - name: "Step 7.2 — poweroff: systemd service"
+    - name: Install the poweroff systemd service
       ansible.builtin.copy:
         dest: /etc/systemd/system/picopoweroff.service
         owner: root
@@ -162,29 +161,29 @@
           [Install]
           WantedBy=shutdown.target
 
-    - name: "Step 7.3 — poweroff: enable the service"
+    - name: Enable the poweroff service
       ansible.builtin.systemd:
         name: picopoweroff.service
         enabled: true
         daemon_reload: true
 
-    # === Verify the drivers are in place, then mark the stage complete =======
-    - name: "Verify: driver artifacts exist"
+    # --- Verify the drivers are in place, then mark the stage complete -------
+    - name: Verify the driver artifacts exist
       ansible.builtin.stat:
         path: "{{ item }}"
       loop:
-        - "/lib/modules/{{ ansible_kernel }}/extra/picocalc_kbd.ko"
+        - "/lib/modules/{{ ansible_facts.kernel }}/extra/picocalc_kbd.ko"
         - /lib/firmware/picomipi.bin
         - "{{ boot_dir }}/overlays/picocalc_kbd.dtbo"
       register: _verify
 
-    - name: "Verify: fail the init stage if any artifact is missing"
+    - name: Fail the init stage if a driver artifact is missing
       ansible.builtin.assert:
         that:
           - _verify.results | rejectattr('stat.exists') | list | length == 0
         fail_msg: "PicoCalc init incomplete — a driver artifact is missing; not marking complete."
 
-    - name: "Ensure the cyberdeck state dir exists"
+    - name: Ensure the cyberdeck state dir exists
       ansible.builtin.file:
         path: /etc/cyberdeck
         state: directory
@@ -192,7 +191,7 @@
         group: root
         mode: "0755"
 
-    - name: "Mark the init stage complete on the device"
+    - name: Mark the hardware-init stage complete
       ansible.builtin.copy:
         dest: /etc/cyberdeck/init-complete
         owner: root
@@ -201,14 +200,14 @@
         content: |
           # Managed by cyberdeck init. Hardware init applied (active after reboot).
           profile={{ cyberdeck_profile }}
-          kernel={{ ansible_kernel }}
+          kernel={{ ansible_facts.kernel }}
           display=panel-mipi-dbi
           keyboard=picocalc_kbd
           audio=audremap
           poweroff=picopoweroff
 
-    # === Reboot so the overlays load (only when something changed) ===========
-    - name: "Reboot to load the display / keyboard / audio overlays"
+    # --- Reboot so the overlays load (only when something changed) -----------
+    - name: Reboot to load the display / keyboard / audio overlays
       ansible.builtin.reboot:
         reboot_timeout: 300
         msg: "cyberdeck init: rebooting to load overlays"
