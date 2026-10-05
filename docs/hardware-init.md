@@ -12,7 +12,8 @@ SPI overlay, build the keyboard driver, and so on:
 
 | Group | Steps |
 |---|---|
-| display | panel firmware → `/lib/firmware`; `mipi-dbi-spi` overlay in `config.txt`; `fbcon` tokens in `cmdline.txt` |
+| display | panel firmware → `/lib/firmware`; `mipi-dbi-spi` overlay in `config.txt`; small console font + no `quiet/splash` in `cmdline.txt` |
+| console | after the reboot, find the panel's framebuffer **by name** and set `fbcon=map:<that index>` — self-correcting, so it works whether the panel is `fb0` (headless) or `fb1` (HDMI attached); reboots once more only if it had to change |
 | keyboard | build the `picocalc_kbd` module on-device, install it + `depmod`, compile the DT overlay, enable I2C + the overlay in `config.txt` |
 | audio | `dtparam=audio=on` + `audremap` overlay (takes effect on the same reboot) |
 | poweroff | `picopoweroff` helper + a systemd unit that cuts mainboard power on shutdown |

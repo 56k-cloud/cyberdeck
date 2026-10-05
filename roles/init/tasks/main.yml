@@ -43,14 +43,22 @@
           dtparam=clock-frequency=50
       register: _display_cfg
 
-    - name: Enable the framebuffer console (cmdline.txt)
+    # Set up the framebuffer console: a small font, no quiet/splash (so boot text
+    # shows), and a bootstrap console->fb0 mapping. The *real* panel index is
+    # detected after the reboot below (the panel fb doesn't exist until the
+    # overlay loads) and corrected there — so this never depends on a guessed index.
+    - name: Configure the framebuffer console (cmdline.txt)
       ansible.builtin.shell:
         cmd: |
           set -e
-          if ! grep -q 'fbcon=map:1' {{ boot_dir }}/cmdline.txt; then
-            sed -i 's/[[:space:]]*$/ fbcon=map:1 fbcon=font:MINI4x6/' {{ boot_dir }}/cmdline.txt
-            echo CHANGED
+          f={{ boot_dir }}/cmdline.txt
+          changed=0
+          if grep -qE '(^| )(quiet|splash)( |$)' "$f"; then
+            sed -i 's/ quiet//g; s/ splash//g' "$f"; changed=1
           fi
+          grep -q 'fbcon=font:MINI4x6' "$f" || { sed -i 's/[[:space:]]*$/ fbcon=font:MINI4x6/' "$f"; changed=1; }
+          grep -qE 'fbcon=map:[0-9]+' "$f" || { sed -i 's/[[:space:]]*$/ fbcon=map:0/' "$f"; changed=1; }
+          [ "$changed" = 1 ] && echo CHANGED || true
       register: _display_cmdline
       changed_when: "'CHANGED' in _display_cmdline.stdout"
 
@@ -215,3 +223,41 @@
         _display_fw is changed or _display_cfg is changed or _display_cmdline is changed
         or _kbd_install is changed or _kbd_dtbo is changed or _kbd_cfg is changed
         or _audio_cfg is changed
+
+    # --- Pin the console to the panel by NAME, whatever index it got ---------
+    # The panel's fb number isn't stable (it depends on whether an HDMI/firmware
+    # framebuffer claimed fb0). Rather than guess, find the fb whose name is the
+    # panel and map the console to that index — so it self-corrects and never
+    # "jumps". This runs after the reboot above, when the panel fb actually exists.
+    - name: Find the panel's framebuffer index (by name)
+      ansible.builtin.shell:
+        cmd: |
+          for n in /sys/class/graphics/fb*/name; do
+            if grep -qiE 'mipi|panel' "$n" 2>/dev/null; then
+              b=$(basename "$(dirname "$n")"); echo "${b#fb}"; exit 0
+            fi
+          done
+      register: _panel_fb
+      changed_when: false
+
+    - name: Map the console to the panel's framebuffer (fbcon=map:<panel>)
+      ansible.builtin.shell:
+        cmd: |
+          set -e
+          want="fbcon=map:{{ _panel_fb.stdout }}"
+          f={{ boot_dir }}/cmdline.txt
+          cur=$(grep -oE 'fbcon=map:[0-9]+' "$f" | head -1 || true)
+          if [ "$cur" != "$want" ]; then
+            if [ -n "$cur" ]; then sed -i "s/fbcon=map:[0-9]\+/$want/" "$f";
+            else sed -i "s/[[:space:]]*$/ $want/" "$f"; fi
+            echo CHANGED
+          fi
+      when: _panel_fb.stdout | length > 0
+      register: _fbmap
+      changed_when: "'CHANGED' in _fbmap.stdout"
+
+    - name: Reboot again only if the console mapping was corrected
+      ansible.builtin.reboot:
+        reboot_timeout: 300
+        msg: "cyberdeck init: console remapped to the panel (fb{{ _panel_fb.stdout }})"
+      when: _fbmap is changed
