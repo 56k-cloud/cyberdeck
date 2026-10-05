@@ -163,7 +163,7 @@ empty to skip).
 ## Layout
 
 ```
-site.yml                      play: init -> base -> tooling -> dotfiles -> comms -> tailscale
+site.yml                      play: init -> base -> tooling -> workstation -> dotfiles -> comms -> tailscale
 config.example.yml            environment inputs (copy to config.yml)
 inventory/hosts.example.ini   inventory (copy to inventory/hosts.ini)
 boot/firstrun.sh.example      first-boot script template
@@ -171,6 +171,7 @@ profiles/picocalc-pizero2w.yml   profile #1
 roles/init/                   PicoCalc hardware: display + keyboard + audio, then reboot
 roles/base/                   locale, timezone, packages, SSH hardening
 roles/tooling/                zsh, tmux, git, stow — light by constraint
+roles/workstation/            uv + several Python versions, apt/pip lists
 roles/dotfiles/               clone public dotfiles, stow (gated)
 roles/comms/                  BBS (telnet) + Usenet (tin) + per-server launchers
 roles/tailscale/              join the tailnet (skips without an auth key)
@@ -181,8 +182,9 @@ docs/secrets-posture.md       what secrets go where, and why
 
 **Working:** `init` (PicoCalc hardware — display, keyboard, audio, poweroff — then
 a reboot; see [docs/hardware-init.md](docs/hardware-init.md)); bare provisioning
-(`base`, `tooling`, `dotfiles`); `comms` (dial public BBSes + read Usenet);
-`tailscale` (next hop to the homelab). The play also prints an
+(`base`, `tooling`, `dotfiles`); `workstation` (uv + several Python versions, apt
++ pip lists); `comms` (dial public BBSes + read Usenet); `tailscale` (next hop to
+the homelab). The play also prints an
 `ssh … 'journalctl -f'` command so you can watch the deck's live output while
 provisioning runs.
 
@@ -190,7 +192,6 @@ provisioning runs.
 lands; exact sequencing is set by the SPEC amendment):
 
 - `wifi` — prioritised network profiles from the `wifi` list, so a reflashed deck reconnects unattended.
-- `workstation` — uv Python toolchain (several versions), plus the `apt` and `pip` lists.
 - `identity` — copies the user-provided `ssh.identity_keys` onto the deck for outbound auth (login keys are handled by `base`).
 - `repos` — clone the `repos` list.
 - `creds` — personal-tier env file (`0600`); lab creds excluded by design.
