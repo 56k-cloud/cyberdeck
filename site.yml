@@ -64,8 +64,8 @@
   roles:
     # init runs FIRST: it brings the PicoCalc hardware up (display, keyboard,
     # audio, poweroff) and REBOOTS so the overlays load — then the system stages
-    # below run on a device with a working screen + keyboard. No-ops on profiles
-    # without a `display` block, so generic boards are unaffected.
+    # below run on a device with a working screen + keyboard. Runs only for
+    # profiles with `hardware: picocalc`, so generic boards are unaffected.
     - init
     - base
     - tooling
@@ -91,4 +91,4 @@
           - "    ssh {{ _addr }}"
           - "  watch its live output:"
           - "    ssh {{ _addr }} 'journalctl -f'"
-          - "  memory: {{ ansible_memfree_mb }} MB free / {{ ansible_memtotal_mb }} MB total (acceptance f)"
+          - "  memory: {{ ansible_facts.memfree_mb }} MB free / {{ ansible_facts.memtotal_mb }} MB total (acceptance f)"

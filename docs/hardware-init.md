@@ -5,16 +5,18 @@ keyboard, audio — then reboots so the overlays load. It runs **first** in the
 play; after the reboot, the system stages (`base`, `tooling`, …) continue on a
 device that has a display and keyboard.
 
-## What it does (steps follow the upstream guide, one by one)
+## What it does (one step at a time, following the upstream guide)
 
-The tasks are named `Step 4.x / 5.x / 6 / 7.x` to mirror the upstream README:
+Tasks are named by what they do — install display panel firmware, configure the
+SPI overlay, build the keyboard driver, and so on:
 
-| Step | What |
+| Group | Steps |
 |---|---|
-| **4** display | panel firmware → `/lib/firmware`; `mipi-dbi-spi` overlay in `config.txt`; `fbcon` tokens in `cmdline.txt` |
-| **5** keyboard | build the `picocalc_kbd` module on-device, install it + `depmod`, compile the DT overlay, enable I2C + the overlay in `config.txt` |
-| **6** audio | `dtparam=audio=on` + `audremap` overlay (takes effect on the same reboot) |
-| **7** poweroff | `picopoweroff` helper + a systemd unit that cuts mainboard power on shutdown |
+| display | panel firmware → `/lib/firmware`; `mipi-dbi-spi` overlay in `config.txt`; small console font + no `quiet/splash` in `cmdline.txt` |
+| console | after the reboot, find the panel's framebuffer **by name** and set `fbcon=map:<that index>` — self-correcting, so it works whether the panel is `fb0` (headless) or `fb1` (HDMI attached); reboots once more only if it had to change |
+| keyboard | build the `picocalc_kbd` module on-device, install it + `depmod`, compile the DT overlay, enable I2C + the overlay in `config.txt` |
+| audio | `dtparam=audio=on` + `audremap` overlay (takes effect on the same reboot) |
+| poweroff | `picopoweroff` helper + a systemd unit that cuts mainboard power on shutdown |
 | verify | assert the module, firmware, and overlay exist, then write `/etc/cyberdeck/init-complete` |
 | reboot | once, only if any of the above changed, so the overlays take effect |
 

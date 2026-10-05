@@ -49,19 +49,6 @@
     exclusive: false
   loop: "{{ device_authorized_keys }}"
 
-# Passwordless sudo for the device user, so re-provisions are hands-free. The
-# FIRST run still needs `-K` (we need sudo to write this); every run after is
-# seamless. Tradeoff: anyone with the deck gets root without a password — the
-# mitigation is that SSH is key-only and the device is yours.
-- name: Grant passwordless sudo to the device user
-  ansible.builtin.copy:
-    dest: "/etc/sudoers.d/010-cyberdeck-{{ device_user }}"
-    content: "{{ device_user }} ALL=(ALL) NOPASSWD:ALL\n"
-    owner: root
-    group: root
-    mode: "0440"
-    validate: "visudo -cf %s"
-
 # A drop-in wins over the main sshd_config: Debian's Include line is near the top
 # and sshd honours the first value it sees for each keyword.
 - name: Harden SSH — key-only auth, no root login

@@ -1,9 +1,8 @@
 ---
-# init — bring the PicoCalc hardware up, one step at a time, mirroring the upstream
-# guide (pinned in upstream-refs.yml; source vendored under files/picocalc/). The
-# step names follow the upstream's: install display driver → install keyboard
-# driver → configure audio → poweroff. It runs FIRST, then reboots so the overlays
-# load; the system stages (base, tooling, …) run after on a working deck.
+# init — bring the PicoCalc hardware up, following the upstream guide's steps
+# (pinned in upstream-refs.yml; source vendored under files/picocalc/). It runs
+# FIRST, then reboots so the overlays load; the system stages (base, tooling, …)
+# run after on a working deck.
 #
 # We translate the steps into idempotent tasks — we never run the upstream script.
 # This flow is PicoCalc-specific by design, guarded on the profile's `hardware`.
@@ -19,8 +18,8 @@
     boot_dir: "{{ init_boot_dir }}"
   block:
 
-    # === Step 4: install display driver (panel_mipi_dbi) =====================
-    - name: "Step 4.1 — display: copy the panel firmware"
+    # --- Display driver (panel_mipi_dbi) -------------------------------------
+    - name: Install the display panel firmware
       ansible.builtin.copy:
         src: picocalc/display/picomipi.bin
         dest: /lib/firmware/picomipi.bin
@@ -29,7 +28,7 @@
         mode: "0644"
       register: _display_fw
 
-    - name: "Step 4.2 — display: SPI panel overlay in config.txt"
+    - name: Configure the SPI panel overlay (config.txt)
       ansible.builtin.blockinfile:
         path: "{{ boot_dir }}/config.txt"
         marker: "# {mark} cyberdeck display"
@@ -44,19 +43,27 @@
           dtparam=clock-frequency=50
       register: _display_cfg
 
-    - name: "Step 4.3 — display: framebuffer console in cmdline.txt"
+    # Set up the framebuffer console: a small font, no quiet/splash (so boot text
+    # shows), and a bootstrap console->fb0 mapping. The *real* panel index is
+    # detected after the reboot below (the panel fb doesn't exist until the
+    # overlay loads) and corrected there — so this never depends on a guessed index.
+    - name: Configure the framebuffer console (cmdline.txt)
       ansible.builtin.shell:
         cmd: |
           set -e
-          if ! grep -q 'fbcon=map:1' {{ boot_dir }}/cmdline.txt; then
-            sed -i 's/[[:space:]]*$/ fbcon=map:1 fbcon=font:MINI4x6/' {{ boot_dir }}/cmdline.txt
-            echo CHANGED
+          f={{ boot_dir }}/cmdline.txt
+          changed=0
+          if grep -qE '(^| )(quiet|splash)( |$)' "$f"; then
+            sed -i 's/ quiet//g; s/ splash//g' "$f"; changed=1
           fi
+          grep -q 'fbcon=font:MINI4x6' "$f" || { sed -i 's/[[:space:]]*$/ fbcon=font:MINI4x6/' "$f"; changed=1; }
+          grep -qE 'fbcon=map:[0-9]+' "$f" || { sed -i 's/[[:space:]]*$/ fbcon=map:0/' "$f"; changed=1; }
+          [ "$changed" = 1 ] && echo CHANGED || true
       register: _display_cmdline
       changed_when: "'CHANGED' in _display_cmdline.stdout"
 
-    # === Step 5: install keyboard driver (picocalc_kbd) ======================
-    - name: "Step 5.1 — keyboard: install build deps + i2c tools"
+    # --- Keyboard driver (picocalc_kbd) --------------------------------------
+    - name: Install keyboard build dependencies + i2c tools
       ansible.builtin.apt:
         name:
           - build-essential
@@ -67,7 +74,7 @@
         update_cache: true
         cache_valid_time: 3600
 
-    - name: "Step 5.2 — keyboard: stage the driver source"
+    - name: Stage the keyboard driver source
       ansible.builtin.copy:
         src: picocalc/keyboard/
         dest: "{{ init_src_dir }}/"
@@ -76,30 +83,30 @@
         mode: preserve
       register: _kbd_src
 
-    - name: "Step 5.3 — keyboard: is the module already built?"
+    - name: Check whether the keyboard module is already built
       ansible.builtin.stat:
-        path: "/lib/modules/{{ ansible_kernel }}/extra/picocalc_kbd.ko"
+        path: "/lib/modules/{{ ansible_facts.kernel }}/extra/picocalc_kbd.ko"
       register: _kbd_ko
 
-    - name: "Step 5.4 — keyboard: build the module against the running kernel"
+    - name: Build the keyboard driver (kernel module)
       ansible.builtin.command:
-        cmd: "make -C /lib/modules/{{ ansible_kernel }}/build M={{ init_src_dir }} modules"
+        cmd: "make -C /lib/modules/{{ ansible_facts.kernel }}/build M={{ init_src_dir }} modules"
       register: _kbd_build
       changed_when: _kbd_build.rc == 0
       when: _kbd_src is changed or not _kbd_ko.stat.exists
 
-    - name: "Step 5.5 — keyboard: install the module + depmod"
+    - name: Install the keyboard module
       ansible.builtin.shell:
         cmd: |
           set -e
           install -D -m 0644 {{ init_src_dir }}/picocalc_kbd.ko \
-            /lib/modules/{{ ansible_kernel }}/extra/picocalc_kbd.ko
-          depmod {{ ansible_kernel }}
+            /lib/modules/{{ ansible_facts.kernel }}/extra/picocalc_kbd.ko
+          depmod {{ ansible_facts.kernel }}
       register: _kbd_install
       changed_when: _kbd_install.rc == 0
       when: _kbd_build is changed
 
-    - name: "Step 5.6 — keyboard: compile + install the DT overlay"
+    - name: Compile and install the keyboard device-tree overlay
       ansible.builtin.command:
         cmd: >-
           dtc -@ -I dts -O dtb -o {{ boot_dir }}/overlays/picocalc_kbd.dtbo
@@ -107,7 +114,7 @@
         creates: "{{ boot_dir }}/overlays/picocalc_kbd.dtbo"
       register: _kbd_dtbo
 
-    - name: "Step 5.7 — keyboard: enable i2c + overlay in config.txt"
+    - name: Enable I2C and the keyboard overlay (config.txt)
       ansible.builtin.blockinfile:
         path: "{{ boot_dir }}/config.txt"
         marker: "# {mark} cyberdeck keyboard"
@@ -117,8 +124,8 @@
           dtoverlay=picocalc_kbd
       register: _kbd_cfg
 
-    # === Step 6: configure audio (takes effect on the same reboot) ===========
-    - name: "Step 6 — audio: enable in config.txt"
+    # --- Audio (takes effect on the same reboot) -----------------------------
+    - name: Enable audio (config.txt)
       ansible.builtin.blockinfile:
         path: "{{ boot_dir }}/config.txt"
         marker: "# {mark} cyberdeck audio"
@@ -128,8 +135,8 @@
           dtoverlay=audremap,pins_12_13
       register: _audio_cfg
 
-    # === Step 7: power the mainboard off on shutdown =========================
-    - name: "Step 7.1 — poweroff: install the helper"
+    # --- Power the mainboard off on shutdown ---------------------------------
+    - name: Install the mainboard poweroff helper
       ansible.builtin.copy:
         dest: /usr/local/bin/picopoweroff
         owner: root
@@ -140,7 +147,7 @@
           # Cut power to the PicoCalc mainboard on shutdown (i2c).
           i2cset -yf 1 0x1f 0x8e 0x00
 
-    - name: "Step 7.2 — poweroff: systemd service"
+    - name: Install the poweroff systemd service
       ansible.builtin.copy:
         dest: /etc/systemd/system/picopoweroff.service
         owner: root
@@ -162,29 +169,29 @@
           [Install]
           WantedBy=shutdown.target
 
-    - name: "Step 7.3 — poweroff: enable the service"
+    - name: Enable the poweroff service
       ansible.builtin.systemd:
         name: picopoweroff.service
         enabled: true
         daemon_reload: true
 
-    # === Verify the drivers are in place, then mark the stage complete =======
-    - name: "Verify: driver artifacts exist"
+    # --- Verify the drivers are in place, then mark the stage complete -------
+    - name: Verify the driver artifacts exist
       ansible.builtin.stat:
         path: "{{ item }}"
       loop:
-        - "/lib/modules/{{ ansible_kernel }}/extra/picocalc_kbd.ko"
+        - "/lib/modules/{{ ansible_facts.kernel }}/extra/picocalc_kbd.ko"
         - /lib/firmware/picomipi.bin
         - "{{ boot_dir }}/overlays/picocalc_kbd.dtbo"
       register: _verify
 
-    - name: "Verify: fail the init stage if any artifact is missing"
+    - name: Fail the init stage if a driver artifact is missing
       ansible.builtin.assert:
         that:
           - _verify.results | rejectattr('stat.exists') | list | length == 0
         fail_msg: "PicoCalc init incomplete — a driver artifact is missing; not marking complete."
 
-    - name: "Ensure the cyberdeck state dir exists"
+    - name: Ensure the cyberdeck state dir exists
       ansible.builtin.file:
         path: /etc/cyberdeck
         state: directory
@@ -192,7 +199,7 @@
         group: root
         mode: "0755"
 
-    - name: "Mark the init stage complete on the device"
+    - name: Mark the hardware-init stage complete
       ansible.builtin.copy:
         dest: /etc/cyberdeck/init-complete
         owner: root
@@ -201,14 +208,14 @@
         content: |
           # Managed by cyberdeck init. Hardware init applied (active after reboot).
           profile={{ cyberdeck_profile }}
-          kernel={{ ansible_kernel }}
+          kernel={{ ansible_facts.kernel }}
           display=panel-mipi-dbi
           keyboard=picocalc_kbd
           audio=audremap
           poweroff=picopoweroff
 
-    # === Reboot so the overlays load (only when something changed) ===========
-    - name: "Reboot to load the display / keyboard / audio overlays"
+    # --- Reboot so the overlays load (only when something changed) -----------
+    - name: Reboot to load the display / keyboard / audio overlays
       ansible.builtin.reboot:
         reboot_timeout: 300
         msg: "cyberdeck init: rebooting to load overlays"
@@ -216,3 +223,41 @@
         _display_fw is changed or _display_cfg is changed or _display_cmdline is changed
         or _kbd_install is changed or _kbd_dtbo is changed or _kbd_cfg is changed
         or _audio_cfg is changed
+
+    # --- Pin the console to the panel by NAME, whatever index it got ---------
+    # The panel's fb number isn't stable (it depends on whether an HDMI/firmware
+    # framebuffer claimed fb0). Rather than guess, find the fb whose name is the
+    # panel and map the console to that index — so it self-corrects and never
+    # "jumps". This runs after the reboot above, when the panel fb actually exists.
+    - name: Find the panel's framebuffer index (by name)
+      ansible.builtin.shell:
+        cmd: |
+          for n in /sys/class/graphics/fb*/name; do
+            if grep -qiE 'mipi|panel' "$n" 2>/dev/null; then
+              b=$(basename "$(dirname "$n")"); echo "${b#fb}"; exit 0
+            fi
+          done
+      register: _panel_fb
+      changed_when: false
+
+    - name: Map the console to the panel's framebuffer (fbcon=map:<panel>)
+      ansible.builtin.shell:
+        cmd: |
+          set -e
+          want="fbcon=map:{{ _panel_fb.stdout }}"
+          f={{ boot_dir }}/cmdline.txt
+          cur=$(grep -oE 'fbcon=map:[0-9]+' "$f" | head -1 || true)
+          if [ "$cur" != "$want" ]; then
+            if [ -n "$cur" ]; then sed -i "s/fbcon=map:[0-9]\+/$want/" "$f";
+            else sed -i "s/[[:space:]]*$/ $want/" "$f"; fi
+            echo CHANGED
+          fi
+      when: _panel_fb.stdout | length > 0
+      register: _fbmap
+      changed_when: "'CHANGED' in _fbmap.stdout"
+
+    - name: Reboot again only if the console mapping was corrected
+      ansible.builtin.reboot:
+        reboot_timeout: 300
+        msg: "cyberdeck init: console remapped to the panel (fb{{ _panel_fb.stdout }})"
+      when: _fbmap is changed
