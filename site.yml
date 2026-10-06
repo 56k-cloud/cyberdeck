@@ -69,6 +69,7 @@
     - init
     - base
     - tooling
+    - console_fonts   # console font library + `deck-font` switcher (320x320)
     - workstation     # uv python toolchain (several versions) + apt/pip lists
     - dotfiles
     - comms           # BBS + Usenet clients + per-server launchers (public servers)
