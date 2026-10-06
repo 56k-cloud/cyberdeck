@@ -5,13 +5,19 @@
 
 # Fail BEFORE we harden SSH if there is no key to log in with — disabling
 # password auth without a working key is how you lock yourself out of a handheld.
-- name: Assert at least one SSH public key was supplied
+# Fail BEFORE any SSH hardening if the keys are missing, still the placeholder,
+# or malformed — hardening disables password auth, so a bad key = lockout.
+- name: Assert real SSH public key(s) were supplied (not the placeholder)
   ansible.builtin.assert:
     that:
       - device_authorized_keys | length > 0
+      - "device_authorized_keys | select('search', 'your-laptop-key') | list | length == 0"
+      - "device_authorized_keys | select('search', 'you@example') | list | length == 0"
+      - "device_authorized_keys | reject('match', '^(ssh-|ecdsa-|sk-ssh-)') | list | length == 0"
     fail_msg: >-
-      ssh.authorized_keys is empty in config.yml. Add at least one public key
-      before provisioning — base hardening disables password auth.
+      ssh.authorized_keys must contain your REAL public key(s), not the example
+      placeholder or empty. Base hardening disables SSH password auth, so an
+      invalid key here locks you out. Edit config.yml before provisioning.
 
 - name: Set timezone
   community.general.timezone:
