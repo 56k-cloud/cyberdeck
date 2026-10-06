@@ -163,7 +163,7 @@ empty to skip).
 ## Layout
 
 ```
-site.yml                      play: init -> base -> tooling -> workstation -> dotfiles -> comms -> tailscale
+site.yml                      play: init -> base -> tooling -> console_fonts -> workstation -> dotfiles -> comms -> tailscale
 config.example.yml            environment inputs (copy to config.yml)
 inventory/hosts.example.ini   inventory (copy to inventory/hosts.ini)
 boot/firstrun.sh.example      first-boot script template
@@ -171,6 +171,7 @@ profiles/picocalc-pizero2w.yml   profile #1
 roles/init/                   PicoCalc hardware: display + keyboard + audio, then reboot
 roles/base/                   locale, timezone, packages, SSH hardening
 roles/tooling/                zsh, tmux, git, stow — light by constraint
+roles/console_fonts/          console font library + `deck-font` switcher (320x320)
 roles/workstation/            uv + several Python versions, apt/pip lists
 roles/dotfiles/               clone public dotfiles, stow (gated)
 roles/comms/                  BBS (telnet) + Usenet (tin) + per-server launchers
@@ -182,9 +183,10 @@ docs/secrets-posture.md       what secrets go where, and why
 
 **Working:** `init` (PicoCalc hardware — display, keyboard, audio, poweroff — then
 a reboot; see [docs/hardware-init.md](docs/hardware-init.md)); bare provisioning
-(`base`, `tooling`, `dotfiles`); `workstation` (uv + several Python versions, apt
-+ pip lists); `comms` (dial public BBSes + read Usenet); `tailscale` (next hop to
-the homelab). The play also prints an
+(`base`, `tooling`, `dotfiles`); `console_fonts` (console font library + the
+`deck-font` switcher for the 320×320 panel); `workstation` (uv + several Python
+versions, apt + pip lists); `comms` (dial public BBSes + read Usenet); `tailscale`
+(next hop to the homelab). The play also prints an
 `ssh … 'journalctl -f'` command so you can watch the deck's live output while
 provisioning runs.
 

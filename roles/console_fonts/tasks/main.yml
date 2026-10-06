@@ -1,0 +1,95 @@
+---
+# console_fonts — make a range of console fonts available on the 320x320 panel and
+# let you switch them live with `deck-font`, persisting a choice across reboots.
+#
+# The console is a framebuffer console: it uses PSF *bitmap* fonts (via setfont),
+# NOT TrueType — so Nerd/Powerline fonts don't apply here (those need a GUI
+# terminal, which the deck doesn't run). The lever that matters is cell size: a
+# smaller cell = more columns x rows but harder to read.
+#
+# Default stays the smallest — MINI4x6 (4x6, ~80x53), set by the init role's
+# fbcon=font boot param. `deck-font set <font>` tries/persists a larger, more
+# legible size; `deck-font list` shows what's installed.
+
+- name: Install console font tooling (setfont + the console font library)
+  ansible.builtin.apt:
+    name: "{{ console_fonts_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Ensure the cyberdeck state dir exists
+  ansible.builtin.file:
+    path: /etc/cyberdeck
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install the font-apply helper (used by the boot service)
+  ansible.builtin.copy:
+    dest: /usr/local/bin/cyberdeck-apply-font
+    owner: root
+    group: root
+    mode: "0755"
+    content: |
+      #!/bin/bash
+      # Apply the persisted console font to the text consoles. No-op when unset —
+      # the init boot font (MINI4x6, the smallest) then stays.
+      f=$(cat /etc/cyberdeck/console-font 2>/dev/null) || exit 0
+      [ -n "$f" ] || exit 0
+      if [ -e "/usr/share/consolefonts/$f.psf.gz" ]; then f="/usr/share/consolefonts/$f.psf.gz"; fi
+      for vt in /dev/tty[1-6]; do setfont -C "$vt" "$f" 2>/dev/null || true; done
+
+- name: Install the deck-font switcher
+  ansible.builtin.copy:
+    dest: /usr/local/bin/deck-font
+    owner: root
+    group: root
+    mode: "0755"
+    content: |
+      #!/bin/bash
+      # deck-font — list / show / set the PicoCalc console font.
+      #   deck-font list            # what's installed
+      #   deck-font set ter-114n    # switch now + persist across reboots
+      #   deck-font show            # the persisted choice
+      set -e
+      state=/etc/cyberdeck/console-font
+      dir=/usr/share/consolefonts
+      case "${1:-show}" in
+        list) ls "$dir" | sed -E 's/\.(psf|psfu)(\.gz)?$//' | sort -u ;;
+        show) echo "persisted: $(cat "$state" 2>/dev/null || echo '(none — boot font MINI4x6, smallest)')" ;;
+        set)
+          [ -n "${2:-}" ] || { echo "usage: deck-font set <font>   (see: deck-font list)"; exit 1; }
+          p="$dir/$2.psf.gz"; [ -e "$p" ] || p="$2"
+          for vt in /dev/tty[1-6]; do sudo setfont -C "$vt" "$p" 2>/dev/null || true; done
+          echo "$2" | sudo tee "$state" >/dev/null
+          echo "set + persisted: $2  (back to smallest: sudo rm $state && reboot)"
+          ;;
+        *) echo "usage: deck-font [list|show|set <font>]"; exit 1 ;;
+      esac
+
+- name: Install the boot-time console-font service
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/cyberdeck-console-font.service
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Apply the cyberdeck console font
+      After=getty.target
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=/usr/local/bin/cyberdeck-apply-font
+
+      [Install]
+      WantedBy=multi-user.target
+
+- name: Enable the console-font service
+  ansible.builtin.systemd:
+    name: cyberdeck-console-font.service
+    enabled: true
+    daemon_reload: true

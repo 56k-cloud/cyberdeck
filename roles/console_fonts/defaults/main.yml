@@ -1,0 +1,7 @@
+---
+# kbd provides `setfont` + a library of console PSF fonts in /usr/share/consolefonts.
+# (We intentionally do NOT install console-setup here — its boot service would
+# override the init role's small MINI4x6 boot font. Fonts are switched with
+# `deck-font`; a chosen one persists via the service below.)
+console_fonts_packages:
+  - kbd
