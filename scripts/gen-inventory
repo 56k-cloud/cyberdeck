@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+"""Generate inventory/hosts.ini from config.yml's `device` block.
+
+Host, user, and SSH key live in ONE place (config.yml) so you don't hand-edit two
+files and Ansible always connects with the right key. Re-run after editing
+config.yml:
+
+    scripts/gen-inventory
+
+config.yml is gitignored, so the generated inventory/hosts.ini is too.
+"""
+import pathlib
+import sys
+
+try:
+    import yaml
+except ImportError:
+    sys.exit("PyYAML not found — it ships with Ansible; run from your ansible env.")
+
+root = pathlib.Path(__file__).resolve().parent.parent
+cfg_path = root / "config.yml"
+if not cfg_path.exists():
+    sys.exit("config.yml not found — copy config.example.yml to config.yml first.")
+
+cfg = yaml.safe_load(cfg_path.read_text()) or {}
+d = cfg.get("device", {})
+name = d.get("name", "deck")
+host = d.get("host")
+user = d.get("user")
+key = d.get("ssh_private_key")
+
+missing = [k for k in ("host", "user") if not d.get(k)]
+if missing or host == "CHANGE_ME":
+    sys.exit(f"config.yml device.{{{','.join(missing) or 'host'}}} must be set (not CHANGE_ME).")
+
+line = f"{name} ansible_host={host} ansible_user={user}"
+if key:
+    line += f" ansible_ssh_private_key_file={key}"
+
+out = (
+    "# Generated from config.yml by scripts/gen-inventory — do not edit by hand.\n"
+    "[cyberdeck]\n"
+    f"{line}\n\n"
+    "[cyberdeck:vars]\n"
+    "ansible_python_interpreter=/usr/bin/python3\n"
+)
+
+dest = root / "inventory" / "hosts.ini"
+dest.write_text(out)
+print(f"wrote {dest.relative_to(root)}:\n\n{out}")
