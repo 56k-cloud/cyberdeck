@@ -28,15 +28,27 @@ activating anything** in your shell — no lingering state, nothing to `deactiva
 
 ## 3. Per-project, activated — venv or direnv
 
-Manual venv:
+Create a venv — two ways, same result (a `.venv` you activate identically):
 
 ```sh
-uv venv                 # creates .venv with the default interpreter
+# classic (Python stdlib):
+python3 -m venv .venv              # or:  python3.10 -m venv .venv   (a specific version)
+
+# uv (faster; picks any uv-installed version with one flag):
+uv venv                            # default interpreter
+uv venv --python 3.10 .venv        # a specific version
+
+# then, either way:
 source .venv/bin/activate
-# ...
-deactivate              # stays active until you deactivate or close the shell —
-                        # `cd` elsewhere does NOT turn it off.
+# ... work ...
+deactivate                         # stays active until you deactivate or close the
+                                   # shell — `cd` elsewhere does NOT turn it off.
 ```
+
+Both produce a standard `.venv`; `uv venv` is just faster and makes choosing a
+specific interpreter (from the ones uv installed) a one-flag job. Inside an
+activated venv, install with `pip install X` (classic) or `uv pip install X`
+(faster, same result).
 
 ### Auto-activate with `direnv`
 
