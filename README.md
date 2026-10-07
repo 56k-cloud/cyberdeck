@@ -163,7 +163,7 @@ empty to skip).
 ## Layout
 
 ```
-site.yml                      play: init -> base -> tooling -> console_fonts -> workstation -> identity -> repos -> dotfiles -> comms -> tailscale
+site.yml                      play: init -> base -> tooling -> console_fonts -> workstation -> identity -> repos -> catalogue -> dotfiles -> comms -> tailscale
 config.example.yml            environment inputs (copy to config.yml)
 scripts/gen-inventory         build inventory/hosts.ini from config.yml's device block
 inventory/hosts.example.ini   inventory shape (real one is generated, gitignored)
@@ -175,6 +175,7 @@ roles/tooling/                zsh, tmux, git, stow — light by constraint
 roles/console_fonts/          console font library + `deck-font` switcher (320x320)
 roles/identity/               copy the deck's own SSH keys (outbound auth)
 roles/repos/                  clone the repos list + build each (pip/uv/custom)
+roles/catalogue/              record installed repos + apt; the `deck-catalogue` listing
 roles/workstation/            uv + several Python versions, apt/pip lists
 roles/dotfiles/               clone public dotfiles, stow (gated)
 roles/comms/                  BBS (telnet) + Usenet (tin) + per-server launchers
@@ -189,8 +190,9 @@ a reboot; see [docs/hardware-init.md](docs/hardware-init.md)); bare provisioning
 (`base`, `tooling`, `dotfiles`); `console_fonts` (console font library + the
 `deck-font` switcher for the 320×320 panel); `workstation` (uv + several Python
 versions, apt + pip lists); `identity` (copy the deck's own SSH keys for outbound
-auth); `repos` (clone + build your projects); `comms` (dial public BBSes + read
-Usenet); `tailscale` (next hop to the homelab). The play also prints an
+auth); `repos` (clone + build your projects); `catalogue` (a `deck-catalogue` listing of
+what's installed — repos + apt — with descriptions); `comms` (dial public BBSes +
+read Usenet); `tailscale` (next hop to the homelab). The play also prints an
 `ssh … 'journalctl -f'` command so you can watch the deck's live output while
 provisioning runs.
 

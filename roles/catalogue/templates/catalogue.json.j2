@@ -1,0 +1,9 @@
+{
+  "repos": [
+{% for r in repos | default([]) %}
+    {"name": {{ r.name | to_json }}, "dest": {{ ((r.dest | default('~/src/' ~ r.name)) | regex_replace('^~', '/home/' ~ device_user)) | to_json }}, "url": {{ r.url | to_json }}, "description": {{ (r.description | default('')) | to_json }}}{% if not loop.last %},{% endif %}
+
+{% endfor %}
+  ],
+  "apt": {{ (packages.apt | default([])) | to_json }}
+}
