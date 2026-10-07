@@ -1,0 +1,28 @@
+---
+# catalogue — record what's installed on the deck (cloned repos + apt extras) and
+# install the `deck-catalogue` command that lists it, apt-style, with descriptions.
+# Runs after repos/workstation so the manifest reflects what's actually there.
+
+- name: Ensure the cyberdeck state dir exists
+  ansible.builtin.file:
+    path: /etc/cyberdeck
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Write the catalogue manifest
+  ansible.builtin.template:
+    src: catalogue.json.j2
+    dest: "{{ catalogue_file }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Install the deck-catalogue command
+  ansible.builtin.copy:
+    src: deck-catalogue
+    dest: /usr/local/bin/deck-catalogue
+    owner: root
+    group: root
+    mode: "0755"

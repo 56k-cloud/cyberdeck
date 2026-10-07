@@ -1,10 +1,48 @@
 ---
-# identity — SCAFFOLD (planned role, not implemented yet).
-#
-# Will copy the user-provided keypairs in `ssh.identity_keys` onto the deck
-# (private key 0600) so it can authenticate out to infra / Gitea / GitHub. No
-# on-device generation — the user decides which keys get copied over. (Login keys,
-# `ssh.authorized_keys`, are handled by the base role.) See docs/secrets-posture.md.
-- name: identity scaffold (planned — not implemented)
+# identity — install the user-provided SSH keypairs (ssh.identity_keys) onto the
+# deck so it can authenticate OUT (git, infra). Provide-and-copy: the keys are
+# generated wherever your key distribution lives and copied here; never generated
+# on-device, never committed. Private key 0600. (Login keys are the base role.)
+# See docs/secrets-posture.md.
+
+- name: Skip identity (no ssh.identity_keys configured)
   ansible.builtin.debug:
-    msg: "Would copy {{ ssh.identity_keys | default([]) | length }} provided keypair(s) onto the deck. Not yet implemented — sequencing set by the SPEC amendment."
+    msg: "ssh.identity_keys is empty — the deck gets no outbound keys."
+  when: (ssh.identity_keys | default([])) | length == 0
+
+- name: Install the deck's SSH identity keys
+  when: (ssh.identity_keys | default([])) | length > 0
+  vars:
+    _home: "/home/{{ device_user }}"
+  block:
+    - name: Ensure ~/.ssh exists
+      ansible.builtin.file:
+        path: "{{ _home }}/.ssh"
+        state: directory
+        owner: "{{ device_user }}"
+        group: "{{ device_user }}"
+        mode: "0700"
+
+    - name: Copy private keys (0600)
+      ansible.builtin.copy:
+        src: "{{ item.private | regex_replace('^~', lookup('env', 'HOME')) }}"
+        dest: "{{ _home }}/.ssh/{{ item.name }}"
+        owner: "{{ device_user }}"
+        group: "{{ device_user }}"
+        mode: "0600"
+      loop: "{{ ssh.identity_keys }}"
+      loop_control:
+        label: "{{ item.name }}"
+      no_log: true
+
+    - name: Copy public keys (0644)
+      ansible.builtin.copy:
+        src: "{{ item.public | regex_replace('^~', lookup('env', 'HOME')) }}"
+        dest: "{{ _home }}/.ssh/{{ item.name }}.pub"
+        owner: "{{ device_user }}"
+        group: "{{ device_user }}"
+        mode: "0644"
+      loop: "{{ ssh.identity_keys }}"
+      loop_control:
+        label: "{{ item.name }}"
+      when: item.public is defined

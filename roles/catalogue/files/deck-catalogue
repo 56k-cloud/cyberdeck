@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+"""deck-catalogue — what's installed on this deck and what each thing is.
+
+Lists the cloned repos (name, current commit, description) and the apt extras
+(with their dpkg summaries) — the deck's bill of materials, apt-list style.
+Reads /etc/cyberdeck/catalogue.json (written by the catalogue role). Stdlib only.
+"""
+import json
+import pathlib
+import subprocess
+
+CATALOGUE = pathlib.Path("/etc/cyberdeck/catalogue.json")
+
+
+def sh(*args):
+    try:
+        return subprocess.run(args, capture_output=True, text=True).stdout.strip()
+    except Exception:
+        return ""
+
+
+def readme_line(dest):
+    """First meaningful line of the repo's README, as a fallback description."""
+    d = pathlib.Path(dest)
+    for fn in ("README.md", "README.rst", "README.txt", "README"):
+        p = d / fn
+        if not p.exists():
+            continue
+        for line in p.read_text(errors="ignore").splitlines():
+            s = line.strip()
+            if not s or s.startswith("#"):            # skip blanks + headings (incl the title)
+                continue
+            if s.startswith(("![", "[!", "<", "=", "-", "*", ">", "|", "```", "http")):
+                continue                              # skip badges / links / rules / lists
+            return s[:90]
+    return ""
+
+
+def main():
+    if not CATALOGUE.exists():
+        print("no catalogue yet — run the playbook (catalogue role) first.")
+        return
+    cat = json.loads(CATALOGUE.read_text())
+
+    repos = cat.get("repos", [])
+    if repos:
+        print("REPOS")
+        for r in repos:
+            sha = sh("git", "-C", r["dest"], "rev-parse", "--short", "HEAD") or "-"
+            desc = r.get("description") or readme_line(r["dest"]) or "(no description)"
+            print(f"  {r['name']:<18} {sha:<10} {desc}")
+
+    apt = cat.get("apt", [])
+    if apt:
+        print("APT")
+        for pkg in apt:
+            summary = sh("dpkg-query", "-W", "-f=${binary:Summary}", pkg) or "(not installed)"
+            print(f"  {pkg:<18} {summary}")
+
+    if not repos and not apt:
+        print("catalogue is empty — no repos or apt extras configured.")
+
+
+if __name__ == "__main__":
+    main()
