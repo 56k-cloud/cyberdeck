@@ -52,6 +52,13 @@ key = device.get("ssh_private_key")
 if not host or not user or host == "CHANGE_ME":
     sys.exit("config.yml needs device.host and device.user set (not CHANGE_ME).")
 
+# Ansible wants the PRIVATE key; a .pub is a common slip that only "works" when an
+# agent happens to hold the key. Strip it so it's correct everywhere.
+if key and key.endswith(".pub"):
+    key = key[:-4]
+    print(f"note: device.ssh_private_key was a .pub (public) key — using the "
+          f"private key {key} instead.", file=sys.stderr)
+
 line = f"{name} ansible_host={host} ansible_user={user}"
 if key:
     line += f" ansible_ssh_private_key_file={key}"
