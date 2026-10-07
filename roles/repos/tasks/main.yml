@@ -1,11 +1,68 @@
 ---
-# repos — SCAFFOLD (planned role, not implemented yet).
-#
-# Will clone the `repos` list onto the device (url, dest, optional branch) and
-# then BUILD each per its `build` category — none / pip (venv + requirements.txt)
-# / uv (uv sync) / custom (`commands`) — plus an optional `startup`. Builds use
-# the workstation toolchain, so this runs after `workstation`. Private repos need
-# the identity role's on-device key registered first, so this runs after `identity`.
-- name: repos scaffold (planned — not implemented)
+# repos — clone the configured repos onto the deck and build each per its `build`
+# category (none | pip | uv | custom). Runs as the device user; uv comes from the
+# workstation role, and private clones use the keys from the identity role.
+
+- name: Skip repos (none configured)
   ansible.builtin.debug:
-    msg: "Would clone {{ repos | default([]) | length }} repo(s). Not yet implemented — sequencing set by the SPEC amendment."
+    msg: "repos is empty — nothing to clone."
+  when: (repos | default([])) | length == 0
+
+- name: Clone + build repos
+  when: (repos | default([])) | length > 0
+  become: true
+  become_user: "{{ device_user }}"
+  vars:
+    _home: "/home/{{ device_user }}"
+    _uv: "/home/{{ device_user }}/.local/bin/uv"
+  block:
+    - name: Clone (or update) each repo
+      ansible.builtin.git:
+        repo: "{{ item.url }}"
+        dest: "{{ item.dest | regex_replace('^~', _home) }}"
+        version: "{{ item.branch | default('HEAD') }}"
+        update: true
+      loop: "{{ repos }}"
+      loop_control:
+        label: "{{ item.url }}"
+
+    # build: pip -> a venv + requirements.txt (uv does the venv + install, fast)
+    - name: "Build (pip): venv + requirements.txt"
+      ansible.builtin.shell:
+        cmd: |
+          set -e
+          cd "{{ item.dest | regex_replace('^~', _home) }}"
+          [ -d .venv ] || {{ _uv }} venv .venv
+          {{ _uv }} pip install --python .venv/bin/python -r requirements.txt
+      loop: "{{ repos | selectattr('build', 'defined') | selectattr('build', 'equalto', 'pip') | list }}"
+      loop_control:
+        label: "{{ item.url }}"
+      changed_when: true
+
+    # build: uv -> uv sync (uv project with pyproject/uv.lock)
+    - name: "Build (uv): uv sync"
+      ansible.builtin.command:
+        cmd: "{{ _uv }} sync"
+        chdir: "{{ item.dest | regex_replace('^~', _home) }}"
+      loop: "{{ repos | selectattr('build', 'defined') | selectattr('build', 'equalto', 'uv') | list }}"
+      loop_control:
+        label: "{{ item.url }}"
+      changed_when: true
+
+    # build: custom -> run each command in the repo
+    - name: "Build (custom): run commands"
+      ansible.builtin.shell:
+        cmd: "{{ item.1 }}"
+        chdir: "{{ item.0.dest | regex_replace('^~', _home) }}"
+      loop: "{{ repos | selectattr('build', 'defined') | selectattr('build', 'equalto', 'custom') | subelements('commands', skip_missing=True) }}"
+      loop_control:
+        label: "{{ item.0.url }}: {{ item.1 }}"
+      changed_when: true
+
+    # `startup` is parsed but not wired yet — flag it rather than silently ignore.
+    - name: Note repos with a startup (not wired yet)
+      ansible.builtin.debug:
+        msg: "repo {{ item.url }} sets `startup` — not implemented yet (planned: a systemd --user unit)."
+      loop: "{{ repos | selectattr('startup', 'defined') | list }}"
+      loop_control:
+        label: "{{ item.url }}"

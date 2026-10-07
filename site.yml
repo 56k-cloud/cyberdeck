@@ -71,13 +71,13 @@
     - tooling
     - console_fonts   # console font library + `deck-font` switcher (320x320)
     - workstation     # uv python toolchain (several versions) + apt/pip lists
+    - identity        # copy the user-provided ssh.identity_keys (outbound auth)
+    - repos           # clone the repos list + build each (pip/uv/custom)
     - dotfiles
     - comms           # BBS + Usenet clients + per-server launchers (public servers)
     - tailscale       # next-hop to the homelab; no-ops when auth_key is unset
     # --- Planned roles (scaffolds under roles/, wired in as each lands) -------
     # - wifi          # prioritised network profiles from the wifi list
-    # - identity      # copy the user-provided ssh.identity_keys for outbound auth
-    # - repos         # clone the repos list
     # - creds         # personal-tier env file (0600); lab tier absent by design
 
   post_tasks:
