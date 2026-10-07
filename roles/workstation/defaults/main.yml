@@ -16,6 +16,7 @@ workstation_base_apt:
   - python3-venv
   - python3-pip
   - pipx
+  - direnv          # auto per-directory env activation (see docs/pyenv.md)
 
 # The DEFAULT Python env: a uv-managed venv (relative to the device user's home)
 # that's always created and put on PATH, so `python` has these libs available

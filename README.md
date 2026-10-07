@@ -182,6 +182,7 @@ roles/comms/                  BBS (telnet) + Usenet (tin) + per-server launchers
 roles/tailscale/              join the tailnet (skips without an auth key)
 docs/secrets-posture.md       what secrets go where, and why
 docs/raspberry.md             deck reference — handy TUIs & commands
+docs/pyenv.md                 python env management (default env, uv run, direnv)
 ```
 
 ## Roadmap

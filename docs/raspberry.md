@@ -41,16 +41,11 @@ is installed on every build; the ones cyberdeck adds are marked *(cyberdeck)*.
 
 ## Python on the deck
 
-- **Default env:** `~/.venvs/base` is always on PATH, so `python` has **`rich`**
-  (pretty output) and **`textual`** (build TUIs) available with nothing to
-  activate. Add more always-available libs via `packages.pip` in `config.yml`.
-- **`curses` is built in** — `import curses` works out of the box (Python stdlib);
-  no install needed. Use it for low-level TUIs, or `textual` for a high-level one.
-- **Per-project envs:** `uv venv .venv && source .venv/bin/activate`, or just
-  `uv run <cmd>` (runs in the project env, nothing to activate/deactivate).
-- **Heads-up:** `source .venv/bin/activate` stays active for the whole shell
-  session — `cd` elsewhere does *not* turn it off; run `deactivate` or use
-  `uv run` / `direnv` if you want it tied to the directory.
+- Default env `~/.venvs/base` is always on PATH, so `python` has **`rich`** +
+  **`textual`** ready; `curses` is built in (stdlib, no install).
+- Per-project work: `uv run <cmd>`, or a venv / `direnv`.
+- Full guide — the default env, `uv run` vs activate, direnv `.envrc`, and the
+  "venv stays active" gotcha: **[docs/pyenv.md](pyenv.md)**.
 
 ## Finding more
 
