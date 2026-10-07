@@ -17,6 +17,8 @@
 # --- Device identity (I1) ------------------------------------------------------
 device:
   user: deck
+  host: "CHANGE_ME"                 # the deck's IP / hostname on your network
+  ssh_private_key: ""               # key Ansible connects with (e.g. ~/.ssh/id_ed25519_cyberdeck); empty => agent/default
   timezone: "Etc/UTC"
   locale: "en_US.UTF-8"
   profile: picocalc-pizero2w        # names profiles/<profile>.yml

@@ -87,14 +87,12 @@ pip install -r requirements.txt          # or: pipx install ansible==14.0.0
 #    ansible-core on its own, also run:
 ansible-galaxy collection install -r requirements.yml
 
-# 3. Create your config from the committed examples (what to fill → Configuration)
-cp config.example.yml config.yml
-cp inventory/hosts.example.ini inventory/hosts.ini
+# 3. Create your config and fill it in (what to fill → Configuration below).
+#    Set device.host, device.user, and device.ssh_private_key at minimum.
+cp config.example.yml config.yml && $EDITOR config.yml
 
-# 4. Tell Ansible where the deck is — edit inventory/hosts.ini:
-#      [cyberdeck]
-#      deck ansible_host=<deck-ip> ansible_user=<youruser>
-#    ansible_host = the deck's IP on your network; ansible_user = the Imager login user
+# 4. Generate the inventory from config.yml (host + user + key, one place)
+scripts/gen-inventory
 
 # 5. Provision it
 ansible-playbook site.yml
@@ -122,7 +120,9 @@ ssh <youruser>@<deck-ip> 'journalctl -f'
 Two files hold everything you customize. Both are **gitignored** — your copies,
 never committed:
 
-- **`inventory/hosts.ini`** — where the deck is (its IP + login user), from step 4.
+- **`inventory/hosts.ini`** — **generated** by `scripts/gen-inventory` from the
+  `device` block in `config.yml` (host + user + SSH key), so you don't hand-edit it
+  or scatter the connection details. Re-run the script after changing `config.yml`.
 - **`config.yml`** — everything else, copied from `config.example.yml`. Every
   section is commented in that file; edit what you need and leave the rest. The two
   you'll reach for first:
@@ -149,7 +149,7 @@ ssh:
     - { name: cyberdeck, private: "~/.config/cyberdeck/keys/id_ed25519", public: "~/.config/cyberdeck/keys/id_ed25519.pub" }
 ```
 
-**The rest, briefly:** `device` (user / timezone / locale / profile) · `python` +
+**The rest, briefly:** `device` (host / user / ssh_private_key / timezone / locale / profile) · `python` +
 `packages` (Python toolchain, apt/pip lists) · `repos` (git repos to clone and how
 to build each) · `creds` (your dev-identity tokens) · `comms` (public BBS / Usenet
 servers) · `tailscale` (auth key to reach the homelab — **leave empty to skip**,
@@ -165,7 +165,8 @@ empty to skip).
 ```
 site.yml                      play: init -> base -> tooling -> console_fonts -> workstation -> dotfiles -> comms -> tailscale
 config.example.yml            environment inputs (copy to config.yml)
-inventory/hosts.example.ini   inventory (copy to inventory/hosts.ini)
+scripts/gen-inventory         build inventory/hosts.ini from config.yml's device block
+inventory/hosts.example.ini   inventory shape (real one is generated, gitignored)
 boot/firstrun.sh.example      first-boot script template
 profiles/picocalc-pizero2w.yml   profile #1
 roles/init/                   PicoCalc hardware: display + keyboard + audio, then reboot
