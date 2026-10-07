@@ -7,31 +7,50 @@ config.yml:
 
     scripts/gen-inventory
 
-config.yml is gitignored, so the generated inventory/hosts.ini is too.
+Stdlib only — no PyYAML — so it runs under any python3. The `device:` block is a
+flat set of `key: value` scalars, which we parse directly (we don't need a full
+YAML engine). config.yml is gitignored, so the generated hosts.ini is too.
 """
 import pathlib
+import re
 import sys
-
-try:
-    import yaml
-except ImportError:
-    sys.exit("PyYAML not found — it ships with Ansible; run from your ansible env.")
 
 root = pathlib.Path(__file__).resolve().parent.parent
 cfg_path = root / "config.yml"
 if not cfg_path.exists():
     sys.exit("config.yml not found — copy config.example.yml to config.yml first.")
 
-cfg = yaml.safe_load(cfg_path.read_text()) or {}
-d = cfg.get("device", {})
-name = d.get("name", "deck")
-host = d.get("host")
-user = d.get("user")
-key = d.get("ssh_private_key")
 
-missing = [k for k in ("host", "user") if not d.get(k)]
-if missing or host == "CHANGE_ME":
-    sys.exit(f"config.yml device.{{{','.join(missing) or 'host'}}} must be set (not CHANGE_ME).")
+def unquote(v: str) -> str:
+    v = v.strip()
+    if v[:1] in ("'", '"'):
+        q = v[0]
+        end = v.find(q, 1)
+        return v[1:end] if end != -1 else v[1:]
+    return v.split("#", 1)[0].strip()   # strip trailing inline comment
+
+
+# Pull the flat scalars under the top-level `device:` block.
+device = {}
+in_block = False
+for line in cfg_path.read_text().splitlines():
+    if re.match(r"^device:\s*(#.*)?$", line):
+        in_block = True
+        continue
+    if in_block:
+        if re.match(r"^\S", line):      # next top-level key -> block ended
+            break
+        m = re.match(r"^\s+([A-Za-z0-9_]+):\s*(.*)$", line)
+        if m:
+            device[m.group(1)] = unquote(m.group(2))
+
+name = device.get("name") or "deck"
+host = device.get("host")
+user = device.get("user")
+key = device.get("ssh_private_key")
+
+if not host or not user or host == "CHANGE_ME":
+    sys.exit("config.yml needs device.host and device.user set (not CHANGE_ME).")
 
 line = f"{name} ansible_host={host} ansible_user={user}"
 if key:
