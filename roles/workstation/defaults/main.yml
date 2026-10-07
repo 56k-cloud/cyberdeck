@@ -23,7 +23,9 @@ workstation_base_apt:
 # Never system pip.
 workstation_pip_venv: ".venvs/base"
 
-# Base libraries shipped in the default env (rich = pretty terminal output). The
-# user's packages.pip is added on top.
+# Base libraries shipped in the default env: rich (pretty terminal output) +
+# textual (build TUIs; same author as rich). `curses` needs no install — it's
+# Python stdlib. The user's packages.pip is added on top.
 workstation_default_pip:
   - rich
+  - textual
