@@ -77,23 +77,28 @@ packages:
   pip: []        # installed into a uv-managed venv, never system pip
 
 # --- Repos to clone (I4) -------------------------------------------------------
-# Each repo is categorised by what to run after cloning, so pip/uv projects
-# rebuild themselves on every restore. Builds use the workstation toolchain (uv +
-# Python), so this runs after that role.
-#   build: none    -> just clone
-#   build: pip     -> create a venv and `pip install -r requirements.txt`
-#   build: uv      -> `uv sync` (uv-managed venv from pyproject/uv.lock)
-#   build: custom  -> run the `commands` list verbatim
-# `startup` (optional) runs the repo after build (future: a systemd user unit).
+# Each entry REQUIRES `name` and `url`. Everything else is optional:
+#   dest         where to clone        (default: ~/src/<name>)
+#   version      branch / tag / commit SHA to pin to   (default: the repo's default branch)
+#   build        how to build it:  none (default) | pip | uv | make | custom
+#   make_target  target for `build: make`              (e.g. setup -> `make setup`)
+#   commands     list of shell commands for `build: custom`
+#   entrypoint   how to launch it      (recorded now; auto-run is a later feature)
+#   description  shown in the catalogue (default: auto-extracted from the repo)
+# Builds use the workstation toolchain (uv), so repos runs after that role.
 repos:
-  - { url: "https://github.com/you/py-thing.git", dest: "~/src/py-thing", branch: main, build: pip }
-  - { url: "https://github.com/you/uv-thing.git", dest: "~/src/uv-thing", build: uv }
-  - url: "https://github.com/you/custom-thing.git"
-    dest: "~/src/custom-thing"
-    build: custom
-    commands:
-      - "make setup"
-    startup: "./run.sh"
+  - name: py-thing
+    url: "https://github.com/you/py-thing.git"
+    build: pip
+  - name: uv-thing
+    url: "https://github.com/you/uv-thing.git"
+    version: v1.2.0              # pin to a tag (or a commit SHA)
+    build: uv
+  - name: custom-thing
+    url: "https://github.com/you/custom-thing.git"
+    build: make
+    make_target: setup
+    entrypoint: "./run.sh"
 
 # --- Credentials (I5) — the deck's own DEV IDENTITY (revocable) ----------------
 # Written to ~/.config/cyberdeck/env (0600) and sourced by the shell. These are
