@@ -7,11 +7,11 @@ terminal (zsh, tmux, git) sized for a tiny screen. It is **profile-driven**: scr
 geometry, board and driver stack are data, so a new handheld is a new file, not a
 rewrite.
 
-> **Status: early.** Working: `init` (PicoCalc display + keyboard enablement),
-> `base`, `tooling`, `comms`, and `tailscale`. The `dotfiles` role is written but
-> **unproven** (it needs the public dotfiles repo, which is still bare).
-> Small-screen config and companion services are later increments — see the
-> Roadmap.
+> **Status.** All planned provisioning roles are implemented — hardware init,
+> base/SSH, WiFi, tooling, console fonts, Python/uv, identity, repos, catalogue,
+> creds, comms, and Tailscale. The `dotfiles` role is written but **unproven** (it
+> needs the public dotfiles repo, which is still bare). Finer small-screen config
+> and layer-3 companion services are still ahead — see the Roadmap.
 
 ## The three layers
 
@@ -164,7 +164,7 @@ empty to skip).
 ## Layout
 
 ```
-site.yml                      play: init -> base -> tooling -> console_fonts -> workstation -> identity -> repos -> catalogue -> dotfiles -> comms -> tailscale
+site.yml                      play: init -> base -> wifi -> tooling -> console_fonts -> workstation -> identity -> repos -> catalogue -> creds -> dotfiles -> comms -> tailscale
 config.example.yml            environment inputs (copy to config.yml)
 scripts/gen-inventory         build inventory/hosts.ini from config.yml's device block
 inventory/hosts.example.ini   inventory shape (real one is generated, gitignored)
@@ -172,12 +172,14 @@ boot/firstrun.sh.example      first-boot script template
 profiles/picocalc-pizero2w.yml   profile #1
 roles/init/                   PicoCalc hardware: display + keyboard + audio, then reboot
 roles/base/                   locale, timezone, packages, SSH hardening
+roles/wifi/                   prioritised NetworkManager WiFi profiles (+ static IP)
 roles/tooling/                zsh, tmux, git, stow — light by constraint
 roles/console_fonts/          console font library + `deck-font` switcher (320x320)
 roles/lock/                   console blank + idle logout + tmux vlock (an unattended deck locks)
 roles/identity/               copy the deck's own SSH keys (outbound auth)
 roles/repos/                  clone the repos list + build each (pip/uv/custom)
 roles/catalogue/              record installed repos + apt; the `deck-catalogue` listing
+roles/creds/                  personal-tier env file (0600), sourced at login
 roles/workstation/            uv + several Python versions, apt/pip lists
 roles/dotfiles/               clone public dotfiles, stow (gated)
 roles/comms/                  BBS (telnet) + Usenet (tin) + per-server launchers
@@ -191,26 +193,22 @@ docs/pyenv.md                 python env management (default env, uv run, direnv
 
 **Working:** `init` (PicoCalc hardware — display, keyboard, audio, poweroff — then
 a reboot; see [docs/hardware-init.md](docs/hardware-init.md)); bare provisioning
-(`base`, `tooling`, `dotfiles`); `console_fonts` (console font library + the
-`deck-font` switcher for the 320×320 panel); `lock` (an unattended deck blanks,
-logs out bare console shells, and locks tmux with vlock); `workstation` (uv + several Python
-versions, apt + pip lists); `identity` (copy the deck's own SSH keys for outbound
-auth); `repos` (clone + build your projects); `catalogue` (a `deck-catalogue` listing of
-what's installed — repos + apt — with descriptions); `comms` (dial public BBSes +
-read Usenet); `tailscale` (next hop to the homelab). The play also prints an
+(`base`, `tooling`, `dotfiles`); `wifi` (prioritised NetworkManager profiles +
+static IP); `console_fonts` (console font library + the `deck-font` switcher for
+the 320×320 panel); `lock` (an unattended deck blanks, logs out bare console
+shells, and locks tmux with vlock); `workstation` (uv + several Python versions,
+apt + pip lists); `identity` (copy the deck's own SSH keys for outbound auth);
+`repos` (clone + build your projects); `catalogue` (a `deck-catalogue` listing of
+what's installed — repos + apt — with descriptions); `creds` (personal-tier env
+file); `comms` (dial public BBSes + read Usenet); `tailscale` (next hop to the
+homelab). The play also prints an
 `ssh … 'journalctl -f'` command so you can watch the deck's live output while
 provisioning runs.
 
-**Planned roles** (scaffolded under `roles/`, each wired into `site.yml` as it
-lands; exact sequencing is set by the SPEC amendment):
-
-- `wifi` — prioritised network profiles from the `wifi` list, so a reflashed deck reconnects unattended.
-- `creds` — personal-tier env file (`0600`); lab creds excluded by design.
-
-**Also from the spec, not yet scheduled:** hardware enablement (capture the
-display + keyboard work as a profile-driven role), small-screen config (tmux,
-pager, editor sized from profile geometry), and companion services (text-cleaning
-backends for 320×320).
+All planned provisioning roles are implemented. Still ahead, from the spec:
+finer **small-screen config** (tmux/pager/editor sized from profile geometry, via
+the dotfiles layer) and **companion services** (layer 3 — text-cleaning backends
+that make web content render at 320×320).
 
 ## License
 
