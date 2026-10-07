@@ -17,6 +17,13 @@ workstation_base_apt:
   - python3-pip
   - pipx
 
-# Baseline pip packages (packages.pip) are installed into this uv-managed venv,
-# relative to the device user's home — never into system pip.
+# The DEFAULT Python env: a uv-managed venv (relative to the device user's home)
+# that's always created and put on PATH, so `python` has these libs available
+# without activating a project venv. Holds workstation_default_pip + packages.pip.
+# Never system pip.
 workstation_pip_venv: ".venvs/base"
+
+# Base libraries shipped in the default env (rich = pretty terminal output). The
+# user's packages.pip is added on top.
+workstation_default_pip:
+  - rich

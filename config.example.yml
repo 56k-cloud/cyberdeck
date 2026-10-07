@@ -74,7 +74,8 @@ python:
 # --- Packages (I3) -------------------------------------------------------------
 packages:
   apt: []        # extra apt apps preinstalled
-  pip: []        # installed into a uv-managed venv, never system pip
+  pip: []        # extra libs for the DEFAULT python env (~/.venvs/base, always on
+                 # PATH). `rich` ships by default; add your always-available libs here.
 
 # --- Repos to clone (I4) -------------------------------------------------------
 # Each entry REQUIRES `name` and `url`. Everything else is optional:
