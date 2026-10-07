@@ -40,9 +40,11 @@ wifi:
 
 # --- SSH (I1 authorized_keys / I4 device identities) ---------------------------
 ssh:
-  # PUBLIC keys allowed to log IN to the deck. Not secret.
+  # PUBLIC keys allowed to log IN to the deck. Each entry is either a key STRING
+  # or a PATH to a .pub on your machine (e.g. ~/.ssh/id_ed25519.pub), read at run
+  # time. Not secret.
   authorized_keys:
-    - "ssh-ed25519 AAAA...your-laptop-key... you@example"
+    - "ssh-ed25519 AAAA...your-laptop-key... you@example"   # replace — or use a path like ~/.ssh/id_ed25519.pub
   # Keypairs COPIED onto the deck so it can authenticate OUT (your infra / Gitea /
   # GitHub). You provide them — generate on whatever box already distributes your
   # keys (e.g. the Terraform machine) and point here; Ansible copies them to the
