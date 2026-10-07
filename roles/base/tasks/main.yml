@@ -7,17 +7,31 @@
 # password auth without a working key is how you lock yourself out of a handheld.
 # Fail BEFORE any SSH hardening if the keys are missing, still the placeholder,
 # or malformed — hardening disables password auth, so a bad key = lockout.
-- name: Assert real SSH public key(s) were supplied (not the placeholder)
+# authorized_keys entries may be a public-key STRING or a PATH to a .pub file on
+# the control machine. Resolve paths to their contents first, then validate — so
+# the lockout guard checks the real key however it was supplied.
+- name: Resolve login keys (public-key string or path to a .pub)
+  ansible.builtin.set_fact:
+    _auth_keys: "{{ _auth_keys | default([]) + [resolved] }}"
+  vars:
+    resolved: >-
+      {{ item if item is match('^(ssh-|ecdsa-|sk-)')
+         else lookup('file', item | regex_replace('^~', lookup('env', 'HOME'))) }}
+  loop: "{{ device_authorized_keys }}"
+  loop_control:
+    label: "{{ item }}"
+
+- name: Assert real SSH public key(s) resolved (not the placeholder)
   ansible.builtin.assert:
     that:
-      - device_authorized_keys | length > 0
-      - "device_authorized_keys | select('search', 'your-laptop-key') | list | length == 0"
-      - "device_authorized_keys | select('search', 'you@example') | list | length == 0"
-      - "device_authorized_keys | reject('match', '^(ssh-|ecdsa-|sk-ssh-)') | list | length == 0"
+      - _auth_keys | default([]) | length > 0
+      - "_auth_keys | default([]) | select('search', 'your-laptop-key') | list | length == 0"
+      - "_auth_keys | default([]) | select('search', 'you@example') | list | length == 0"
+      - "_auth_keys | default([]) | reject('match', '^(ssh-|ecdsa-|sk-ssh-)') | list | length == 0"
     fail_msg: >-
-      ssh.authorized_keys must contain your REAL public key(s), not the example
-      placeholder or empty. Base hardening disables SSH password auth, so an
-      invalid key here locks you out. Edit config.yml before provisioning.
+      ssh.authorized_keys must resolve to your REAL public key(s) — a key string,
+      or a path to a .pub — not the example placeholder or empty. Base hardening
+      disables SSH password auth, so an invalid key here locks you out.
 
 - name: Set timezone
   community.general.timezone:
@@ -53,7 +67,7 @@
     key: "{{ item }}"
     state: present
     exclusive: false
-  loop: "{{ device_authorized_keys }}"
+  loop: "{{ _auth_keys }}"
 
 # A drop-in wins over the main sshd_config: Debian's Include line is near the top
 # and sshd honours the first value it sees for each keyword.
