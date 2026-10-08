@@ -152,7 +152,8 @@ ssh:
 **The rest, briefly:** `device` (host / user / ssh_private_key / timezone / locale / profile) · `python` +
 `packages` (Python toolchain, apt/pip lists) · `repos` (git repos to clone and how
 to build each) · `creds` (your dev-identity tokens) · `comms` (public BBS / Usenet
-servers) · `tailscale` (auth key to reach the homelab — **leave empty to skip**,
+servers) · `lock` (idle blank / logout / tmux lock timers — defaults are
+safe, omit to keep them) · `tailscale` (auth key to reach the homelab — **leave empty to skip**,
 e.g. when you're already on your LAN) · `dotfiles` (public dotfiles repo URL —
 empty to skip).
 
@@ -173,6 +174,7 @@ roles/init/                   PicoCalc hardware: display + keyboard + audio, the
 roles/base/                   locale, timezone, packages, SSH hardening
 roles/tooling/                zsh, tmux, git, stow — light by constraint
 roles/console_fonts/          console font library + `deck-font` switcher (320x320)
+roles/lock/                   console blank + idle logout + tmux vlock (an unattended deck locks)
 roles/identity/               copy the deck's own SSH keys (outbound auth)
 roles/repos/                  clone the repos list + build each (pip/uv/custom)
 roles/catalogue/              record installed repos + apt; the `deck-catalogue` listing
@@ -190,7 +192,8 @@ docs/pyenv.md                 python env management (default env, uv run, direnv
 **Working:** `init` (PicoCalc hardware — display, keyboard, audio, poweroff — then
 a reboot; see [docs/hardware-init.md](docs/hardware-init.md)); bare provisioning
 (`base`, `tooling`, `dotfiles`); `console_fonts` (console font library + the
-`deck-font` switcher for the 320×320 panel); `workstation` (uv + several Python
+`deck-font` switcher for the 320×320 panel); `lock` (an unattended deck blanks,
+logs out bare console shells, and locks tmux with vlock); `workstation` (uv + several Python
 versions, apt + pip lists); `identity` (copy the deck's own SSH keys for outbound
 auth); `repos` (clone + build your projects); `catalogue` (a `deck-catalogue` listing of
 what's installed — repos + apt — with descriptions); `comms` (dial public BBSes +

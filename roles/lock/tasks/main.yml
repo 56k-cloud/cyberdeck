@@ -1,0 +1,81 @@
+---
+# lock — an unattended deck must not stay unlocked (homelab KNOWN-GAPS G34). An
+# unlocked handheld with a live tailnet + SSH identity is the real exposure —
+# bigger than the unencrypted card, because it needs no disassembly.
+#
+# Three layers, all console-scoped (an SSH session's idle time is the laptop's
+# problem, not the deck's):
+#   - console blank  (kernel consoleblank, set at boot via tmpfiles — no reboot)
+#   - idle logout    (TMOUT on bare tty shells; not inside tmux, not over SSH)
+#   - tmux lock      (lock-after-time + vlock, so long-running panes survive)
+
+- name: Resolve lock settings (config.yml overrides defaults per key)
+  ansible.builtin.set_fact:
+    lock_cfg: "{{ lock_defaults | combine(lock | default({})) }}"
+
+- name: Install vlock (console locker used by tmux)
+  ansible.builtin.apt:
+    name: vlock
+    state: present
+
+- name: Blank the console after idle (applied at every boot)
+  ansible.builtin.copy:
+    dest: /etc/tmpfiles.d/cyberdeck-consoleblank.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by cyberdeck (lock). Seconds of idle before the console blanks.
+      w /sys/module/kernel/parameters/consoleblank - - - - {{ (lock_cfg.blank_min | int) * 60 }}
+  register: lock_blank
+
+- name: Apply console blank now (no reboot needed)
+  ansible.builtin.command: systemd-tmpfiles --create /etc/tmpfiles.d/cyberdeck-consoleblank.conf
+  when: lock_blank is changed
+
+- name: Log out idle bare console shells
+  ansible.builtin.copy:
+    dest: /etc/profile.d/40-cyberdeck-idle.sh
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by cyberdeck (lock). Idle logout for LOCAL console shells only:
+      # not inside tmux (tmux locks instead), not over SSH. 0 disables.
+      {% if (lock_cfg.idle_logout_min | int) > 0 %}
+      if [ -z "$TMUX" ] && [ -z "$SSH_TTY" ]; then
+        case "$(tty 2>/dev/null)" in
+          /dev/tty[0-9]*) TMOUT={{ (lock_cfg.idle_logout_min | int) * 60 }}; readonly TMOUT; export TMOUT ;;
+        esac
+      fi
+      {% endif %}
+
+- name: Lock idle tmux clients with vlock (system-wide tmux config)
+  ansible.builtin.blockinfile:
+    path: /etc/tmux.conf
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+    marker: "# {mark} cyberdeck: idle lock"
+    block: |
+      {% if (lock_cfg.tmux_lock_min | int) > 0 %}
+      set -g lock-command vlock
+      set -g lock-after-time {{ (lock_cfg.tmux_lock_min | int) * 60 }}
+      {% else %}
+      set -g lock-after-time 0
+      {% endif %}
+
+# An autologin getty would just log straight back in after the idle logout.
+# Pi OS puts it in a getty@tty1 drop-in (raspi-config "Console Autologin").
+- name: Remove console autologin
+  ansible.builtin.file:
+    path: /etc/systemd/system/getty@tty1.service.d/autologin.conf
+    state: absent
+  when: not (lock_cfg.allow_autologin | bool)
+  register: lock_autologin
+
+- name: Reload systemd after removing autologin (takes effect at next login prompt)
+  ansible.builtin.systemd:
+    daemon_reload: true
+  when: lock_autologin is changed
