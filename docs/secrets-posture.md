@@ -29,7 +29,7 @@ cleanly:
 
 | Tier | Examples | On the deck? |
 |---|---|---|
-| **Dev identity (revocable)** | its own on-device SSH keys; scoped GitHub + Gitea PATs; WiFi PSKs; a spend-capped Claude key | **Yes** |
+| **Dev identity (revocable)** | its own on-device SSH keys; scoped GitHub + Gitea PATs; WiFi PSKs | **Yes** |
 | **Lab owner / infra** | the homelab's admin tokens, automation/root keys, the SOPS age key | **Never** |
 
 Everything in the first tier is a **scoped, revocable device identity**: the deck

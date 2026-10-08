@@ -111,7 +111,6 @@ repos:
 creds:
   github_token: ""      # scoped PAT for your dev identity (PRs via gh) -> $GH_TOKEN
   gitea_token: ""       # scoped PAT for your dev identity on a self-hosted Gitea
-  claude_api_key: ""    # spend-capped -> $ANTHROPIC_API_KEY
 
 # --- Comms: BBS + Usenet (try-it-out) ------------------------------------------
 # Public servers you provide. The role installs clients and drops a launcher per

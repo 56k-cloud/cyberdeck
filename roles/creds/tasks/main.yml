@@ -1,8 +1,7 @@
 ---
 # creds — write the PERSONAL-TIER creds into ~/.config/cyberdeck/env (0600) and
 # source it at login, so they're in the shell environment. Only your own,
-# revocable creds belong here (a fine-grained GitHub/Gitea PAT, a spend-capped
-# Claude key) — never the homelab's owner/admin credentials (docs/secrets-posture.md).
+# revocable creds belong here (a fine-grained GitHub/Gitea PAT) — never the homelab's owner/admin credentials (docs/secrets-posture.md).
 # Secret-bearing (no_log).
 
 - name: Ensure ~/.config/cyberdeck exists
