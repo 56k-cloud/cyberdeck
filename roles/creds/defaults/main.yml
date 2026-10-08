@@ -1,0 +1,6 @@
+---
+# Env var name per creds key — the name the consuming tool actually reads.
+# Keys not listed here export as their UPPERCASED name.
+creds_env_names:
+  claude_api_key: ANTHROPIC_API_KEY   # what Claude Code / the Anthropic SDK read
+  github_token: GH_TOKEN              # gh's preferred var (GITHUB_TOKEN also works)

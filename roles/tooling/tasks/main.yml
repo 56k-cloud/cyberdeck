@@ -13,3 +13,17 @@
   ansible.builtin.user:
     name: "{{ device_user }}"
     shell: /usr/bin/zsh
+
+# Debian's zsh does NOT read /etc/profile or /etc/profile.d, so every
+# /etc/profile.d/*.sh a role drops (python PATH, creds env) would be silently
+# skipped in the deck's login shell. Bridge it once here, in sh-emulation.
+- name: Make zsh login shells read /etc/profile.d
+  ansible.builtin.blockinfile:
+    path: /etc/zsh/zprofile
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+    marker: "# {mark} cyberdeck: source /etc/profile.d"
+    block: |
+      emulate sh -c 'for f in /etc/profile.d/*.sh; do [ -r "$f" ] && . "$f"; done; unset f'

@@ -24,12 +24,12 @@
       # Edit via config.yml -> re-run the playbook; do not hand-edit.
       {% for key, value in (creds | default({})).items() %}
       {% if value %}
-      export {{ key | upper }}={{ value | quote }}
+      export {{ creds_env_names[key] | default(key | upper) }}={{ value | quote }}
       {% endif %}
       {% endfor %}
   no_log: true
 
-- name: Source the env file at login (bash + zsh)
+- name: Source the env file at login (bash; zsh via tooling's zprofile bridge)
   ansible.builtin.copy:
     dest: /etc/profile.d/30-cyberdeck-env.sh
     owner: root
