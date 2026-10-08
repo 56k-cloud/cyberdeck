@@ -164,7 +164,7 @@ empty to skip).
 ## Layout
 
 ```
-site.yml                      play: init -> base -> wifi -> tooling -> console_fonts -> workstation -> identity -> repos -> catalogue -> creds -> dotfiles -> comms -> tailscale
+site.yml                      play: init -> base -> wifi -> tooling -> console_fonts -> lock -> workstation -> identity -> repos -> catalogue -> creds -> dotfiles -> comms -> tailscale
 config.example.yml            environment inputs (copy to config.yml)
 scripts/gen-inventory         build inventory/hosts.ini from config.yml's device block
 inventory/hosts.example.ini   inventory shape (real one is generated, gitignored)
