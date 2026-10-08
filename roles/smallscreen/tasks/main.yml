@@ -1,0 +1,43 @@
+---
+# smallscreen — fit the shell to a small console (Increment 3: console-only; no X,
+# no compositor — tmux is the window manager). Writes a managed block into the
+# local-override files the public dotfiles already source at the end:
+#   ~/.zshrc.local      narrow prompt: current dir only, not the full path
+#   ~/.tmux.conf.local  compact status bar: time + session, no date
+# Both ADAPT AT RUNTIME to the terminal width (narrow below 100 columns), so
+# nothing hardcodes 320 px — a bigger console font (deck-font) or a wider device
+# just works. Lines you add outside the managed block are kept.
+
+- name: Narrow zsh prompt on small terminals (~/.zshrc.local)
+  ansible.builtin.blockinfile:
+    path: "/home/{{ device_user }}/.zshrc.local"
+    create: true
+    owner: "{{ device_user }}"
+    group: "{{ device_user }}"
+    mode: "0644"
+    marker: "# {mark} cyberdeck smallscreen (managed — edit outside this block)"
+    block: |
+      # Below 100 columns show only the current dir (`src>`), else the full path.
+      # Re-checked before every prompt, so a font switch or resize takes effect.
+      _cyberdeck_prompt() {
+        local where='%~'
+        (( COLUMNS < 100 )) && where='%1~'
+        PROMPT='%F{cyan}${VIRTUAL_ENV:+(${VIRTUAL_ENV:t}) }%f%F{blue}'"$where"'%f> '
+      }
+      autoload -Uz add-zsh-hook
+      add-zsh-hook precmd _cyberdeck_prompt
+
+- name: Compact tmux status bar on small terminals (~/.tmux.conf.local)
+  ansible.builtin.blockinfile:
+    path: "/home/{{ device_user }}/.tmux.conf.local"
+    create: true
+    owner: "{{ device_user }}"
+    group: "{{ device_user }}"
+    mode: "0644"
+    marker: "# {mark} cyberdeck smallscreen (managed — edit outside this block)"
+    block: |
+      # Below 100 columns: `HH:MM session` on the right (no date), else the full one.
+      set -g status-right "#{?#{e|<:#{client_width},100}, %H:%M #S, %Y-%m-%d %H:%M│#S}"
+      set -g status-right-length 30
+      # No mouse on the deck's console — don't let tmux grab one if it appears.
+      set -g mouse off

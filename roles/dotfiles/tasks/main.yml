@@ -3,9 +3,8 @@
 # device user's home. The config is canonical in that repo (SPEC-dotfiles-public),
 # cloned over the internet; this role never reaches a private/lab host.
 #
-# GATED: no-ops when dotfiles_public_repo is unset. The role is written against
-# SPEC-dotfiles-public but is UNPROVEN until that public repo exists — do not
-# treat acceptance (a) as fully met on the strength of this role alone.
+# No-ops when dotfiles_public_repo is unset. Proven on hardware (2026-10-06).
+# Deck-specific tweaks go in the .local overlays (smallscreen role), never here.
 
 - name: Skip dotfiles (no public repo configured)
   ansible.builtin.debug:
