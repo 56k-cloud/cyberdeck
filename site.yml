@@ -62,7 +62,7 @@
       tags: [always]
 
   # Tags: each role is tagged with its own name plus a slice —
-  #   core    a secure, connected terminal (init … lock, just, identity, creds, dotfiles, smallscreen, tailscale)
+  #   core    a secure, connected terminal (init … lock, just, identity, creds, dotfiles, tailscale)
   #   extras  what you install and iterate on (workstation, git, downloads, catalogue, comms)
   #   access  overlay: the revocable credentials (identity, creds, tailscale)
   # e.g. --tags extras · --tags downloads,catalogue · --skip-tags init. See docs/tags.md.
@@ -85,7 +85,6 @@
     - { role: catalogue,     tags: [catalogue, extras] }        # record what's installed + the `deck-catalogue` command
     - { role: creds,         tags: [creds, core, access] }      # personal-tier env file (0600); lab tier absent by design
     - { role: dotfiles,      tags: [dotfiles, core] }
-    - { role: smallscreen,   tags: [smallscreen, core] }        # narrow prompt + compact tmux status (adapts to width)
     - { role: comms,         tags: [comms, extras] }            # BBS + Usenet clients + per-server launchers (public servers)
     - { role: tailscale,     tags: [tailscale, core, access] }  # next-hop to the homelab; no-ops when auth_key is unset
 

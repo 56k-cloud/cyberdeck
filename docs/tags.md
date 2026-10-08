@@ -6,7 +6,7 @@ name plus a slice.
 
 | Tag | Roles | What it is |
 |---|---|---|
-| `core` | init, base, wifi, tooling, console_fonts, lock, just, identity, creds, dotfiles, smallscreen, tailscale | a secure, connected terminal |
+| `core` | init, base, wifi, tooling, console_fonts, lock, just, identity, creds, dotfiles, tailscale | a secure, connected terminal |
 | `extras` | workstation, git, downloads, catalogue, comms | what you install and iterate on |
 | `access` | identity, creds, tailscale | overlay: the revocable credentials (also in `core`) |
 | `<role name>` | that one role | e.g. `downloads` |

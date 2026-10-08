@@ -4,7 +4,8 @@
 # cloned over the internet; this role never reaches a private/lab host.
 #
 # No-ops when dotfiles_public_repo is unset. Proven on hardware (2026-10-06).
-# Deck-specific tweaks go in the .local overlays (smallscreen role), never here.
+# Width-adaptive behaviour (narrow prompt, compact tmux status) lives in the public
+# dotfiles themselves; the .local overlays are only for truly deck-only tweaks.
 
 - name: Skip dotfiles (no public repo configured)
   ansible.builtin.debug:
