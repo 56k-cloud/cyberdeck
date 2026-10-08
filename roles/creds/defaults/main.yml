@@ -1,0 +1,5 @@
+---
+# Env var name per creds key — the name the consuming tool actually reads.
+# Keys not listed here export as their UPPERCASED name.
+creds_env_names:
+  github_token: GH_TOKEN              # gh's preferred var (GITHUB_TOKEN also works)

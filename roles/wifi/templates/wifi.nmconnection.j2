@@ -1,0 +1,28 @@
+[connection]
+id={{ item.ssid }}
+type=wifi
+autoconnect=true
+autoconnect-priority={{ item.priority | default(0) }}
+
+[wifi]
+ssid={{ item.ssid }}
+mode=infrastructure
+
+[wifi-security]
+key-mgmt=wpa-psk
+psk={{ item.psk }}
+
+[ipv4]
+{% if item.static is defined %}
+method=manual
+address1={{ item.static.address }}{% if item.static.gateway is defined %},{{ item.static.gateway }}{% endif %}
+
+{% if item.static.dns is defined %}
+dns={{ item.static.dns | join(';') }};
+{% endif %}
+{% else %}
+method=auto
+{% endif %}
+
+[ipv6]
+method=auto

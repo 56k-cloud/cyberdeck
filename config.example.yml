@@ -109,9 +109,8 @@ repos:
 # leaves the house (docs/secrets-posture.md). Prefer the SSH keys you provide
 # (ssh.identity_keys) for git; the tokens here are for CLI/API (gh / tea).
 creds:
-  github_token: ""      # scoped PAT for your dev identity (PRs via gh)
+  github_token: ""      # scoped PAT for your dev identity (PRs via gh) -> $GH_TOKEN
   gitea_token: ""       # scoped PAT for your dev identity on a self-hosted Gitea
-  claude_api_key: ""    # spend-capped
 
 # --- Comms: BBS + Usenet (try-it-out) ------------------------------------------
 # Public servers you provide. The role installs clients and drops a launcher per

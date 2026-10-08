@@ -1,11 +1,39 @@
 ---
-# creds — SCAFFOLD (planned role, not implemented yet).
-#
-# Will write the PERSONAL-TIER creds from `creds` into ~/.config/cyberdeck/env
-# (mode 0600), sourced by the shell via the dotfiles zsh hook. Only your own
-# revocable creds (e.g. a fine-grained GitHub PAT, a spend-capped Claude key)
-# belong here. The LAB tier (gitea/homelab tokens) is deliberately absent: a
-# device that leaves the house must not carry lab access (docs/secrets-posture.md).
-- name: creds scaffold (planned — not implemented)
-  ansible.builtin.debug:
-    msg: "Would write a 0600 personal-tier env file. Lab creds intentionally excluded. Not yet implemented — sequencing set by the SPEC amendment."
+# creds — write the PERSONAL-TIER creds into ~/.config/cyberdeck/env (0600) and
+# source it at login, so they're in the shell environment. Only your own,
+# revocable creds belong here (a fine-grained GitHub/Gitea PAT) — never the homelab's owner/admin credentials (docs/secrets-posture.md).
+# Secret-bearing (no_log).
+
+- name: Ensure ~/.config/cyberdeck exists
+  ansible.builtin.file:
+    path: "/home/{{ device_user }}/.config/cyberdeck"
+    state: directory
+    owner: "{{ device_user }}"
+    group: "{{ device_user }}"
+    mode: "0700"
+
+- name: Write the personal-tier env file (0600)
+  ansible.builtin.copy:
+    dest: "/home/{{ device_user }}/.config/cyberdeck/env"
+    owner: "{{ device_user }}"
+    group: "{{ device_user }}"
+    mode: "0600"
+    content: |
+      # Managed by cyberdeck (creds). Personal-tier creds, sourced by the shell.
+      # Edit via config.yml -> re-run the playbook; do not hand-edit.
+      {% for key, value in (creds | default({})).items() %}
+      {% if value %}
+      export {{ creds_env_names[key] | default(key | upper) }}={{ value | quote }}
+      {% endif %}
+      {% endfor %}
+  no_log: true
+
+- name: Source the env file at login (bash; zsh via tooling's zprofile bridge)
+  ansible.builtin.copy:
+    dest: /etc/profile.d/30-cyberdeck-env.sh
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by cyberdeck (creds). Load the per-user personal-tier env.
+      [ -f "$HOME/.config/cyberdeck/env" ] && . "$HOME/.config/cyberdeck/env"
