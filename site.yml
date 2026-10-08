@@ -62,7 +62,7 @@
       tags: [always]
 
   # Tags: each role is tagged with its own name plus a slice —
-  #   core    a secure, connected terminal (init … lock, identity, creds, dotfiles, tailscale)
+  #   core    a secure, connected terminal (init … lock, just, identity, creds, dotfiles, tailscale)
   #   extras  what you install and iterate on (workstation, git, downloads, catalogue, comms)
   #   access  overlay: the revocable credentials (identity, creds, tailscale)
   # e.g. --tags extras · --tags downloads,catalogue · --skip-tags init. See docs/tags.md.
@@ -77,6 +77,7 @@
     - { role: tooling,       tags: [tooling, core] }
     - { role: console_fonts, tags: [console_fonts, core] }      # console font library + `deck-font` switcher (320x320)
     - { role: lock,          tags: [lock, core] }               # console blank + idle logout + tmux vlock (G34)
+    - { role: just,          tags: [just, core] }               # the `just` command menu (just wifi, just font, …)
     - { role: workstation,   tags: [workstation, extras] }      # uv python toolchain (several versions) + apt/pip lists
     - { role: identity,      tags: [identity, core, access] }   # copy the user-provided ssh.identity_keys (outbound auth)
     - { role: git,           tags: [git, extras] }              # clone the git list + run each entry's install commands

@@ -176,6 +176,7 @@ roles/wifi/                   prioritised NetworkManager WiFi profiles (+ static
 roles/tooling/                zsh, tmux, git, stow — light by constraint
 roles/console_fonts/          console font library + `deck-font` switcher (320x320)
 roles/lock/                   console blank + idle logout + tmux vlock (an unattended deck locks)
+roles/just/                   the `just` command menu — `just` lists it; `just wifi`, `just font`, …
 roles/identity/               copy the deck's own SSH keys (outbound auth)
 roles/git/                    clone the git list + run each entry's install commands
 roles/downloads/              pinned URL + sha256 (release binaries) + install commands
