@@ -77,29 +77,42 @@ packages:
   pip: []        # extra libs for the DEFAULT python env (~/.venvs/base, always on
                  # PATH). `rich` ships by default; add your always-available libs here.
 
-# --- Repos to clone (I4) -------------------------------------------------------
-# Each entry REQUIRES `name` and `url`. Everything else is optional:
-#   dest         where to clone        (default: ~/src/<name>)
-#   version      branch / tag / commit SHA to pin to   (default: the repo's default branch)
-#   build        how to build it:  none (default) | pip | uv | make | custom
-#   make_target  target for `build: make`              (e.g. setup -> `make setup`)
-#   commands     list of shell commands for `build: custom`
-#   entrypoint   how to launch it      (recorded now; auto-run is a later feature)
-#   description  shown in the catalogue (default: auto-extracted from the repo)
-# Builds use the workstation toolchain (uv), so repos runs after that role.
-repos:
+# --- Software you add: git clones + pinned downloads --------------------------
+# Same shape for both. `install` is an ORDERED list of shell commands, run top to
+# bottom and stopping at the first failure (like joining them with &&). It runs
+# as you, in a login shell (your PATH: ~/.local/bin, uv, the default python env).
+# No build types, no guessing — write exactly what should run. Install re-runs
+# only when the commit / sha256 or the commands change.
+#   entrypoint   how you launch it (shown in `deck-catalogue`)
+#   description  shown in `deck-catalogue`
+
+# git — clone, then run `install` inside the clone.
+#   name, url    required
+#   dest         where to clone (default: ~/src/<name>)
+#   version      branch, tag, or commit SHA to pin to (default: the repo's default branch)
+git:
   - name: py-thing
     url: "https://github.com/you/py-thing.git"
-    build: pip
-  - name: uv-thing
-    url: "https://github.com/you/uv-thing.git"
-    version: v1.2.0              # pin to a tag (or a commit SHA)
-    build: uv
-  - name: custom-thing
-    url: "https://github.com/you/custom-thing.git"
-    build: make
-    make_target: setup
-    entrypoint: "./run.sh"
+    version: v1.2.0                  # pin a tag (or a full commit SHA)
+    install:
+      - uv venv .venv
+      - uv pip install --python .venv/bin/python -r requirements.txt
+      - ln -sf "$PWD/run.sh" ~/.local/bin/py-thing
+    entrypoint: py-thing
+    description: "An example tool"
+
+# downloads — fetch a pinned file, verify its sha256, then run `install` with
+# $FILE = the downloaded path. Best for prebuilt release binaries: compiling
+# (e.g. Rust) on a 512 MB board is not an option. Pick the aarch64 / arm64 asset
+# for a 64-bit Pi OS (`dpkg --print-architecture`).
+downloads:
+  - name: aichat
+    url: "https://github.com/sigoden/aichat/releases/download/v0.30.0/aichat-v0.30.0-aarch64-unknown-linux-musl.tar.gz"
+    sha256: "eb1cd0948569404c5d9d01c10b32b902e11f8231073315456454dec246bdf26e"
+    install:
+      - tar -xzf "$FILE" -C ~/.local/bin aichat
+    entrypoint: aichat
+    description: "All-in-one LLM CLI — chat, REPL, shell assistant"
 
 # --- Credentials (I5) — the deck's own DEV IDENTITY (revocable) ----------------
 # Written to ~/.config/cyberdeck/env (0600) and sourced by the shell. These are

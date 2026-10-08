@@ -8,7 +8,7 @@ geometry, board and driver stack are data, so a new handheld is a new file, not 
 rewrite.
 
 > **Status.** All planned provisioning roles are implemented — hardware init,
-> base/SSH, WiFi, tooling, console fonts, Python/uv, identity, repos, catalogue,
+> base/SSH, WiFi, tooling, console fonts, Python/uv, identity, git + downloads, catalogue,
 > creds, comms, and Tailscale. The `dotfiles` role is written but **unproven** (it
 > needs the public dotfiles repo, which is still bare). Finer small-screen config
 > and layer-3 companion services are still ahead — see the Roadmap.
@@ -150,8 +150,8 @@ ssh:
 ```
 
 **The rest, briefly:** `device` (host / user / ssh_private_key / timezone / locale / profile) · `python` +
-`packages` (Python toolchain, apt/pip lists) · `repos` (git repos to clone and how
-to build each) · `creds` (your dev-identity tokens) · `comms` (public BBS / Usenet
+`packages` (Python toolchain, apt/pip lists) · `git` + `downloads` (repos to clone / pinned files to fetch, each with ordered
+`install` commands) · `creds` (your dev-identity tokens) · `comms` (public BBS / Usenet
 servers) · `lock` (idle blank / logout / tmux lock timers — defaults are
 safe, omit to keep them) · `tailscale` (auth key to reach the homelab — **leave empty to skip**,
 e.g. when you're already on your LAN) · `dotfiles` (public dotfiles repo URL —
@@ -164,7 +164,7 @@ empty to skip).
 ## Layout
 
 ```
-site.yml                      play: init -> base -> wifi -> tooling -> console_fonts -> lock -> workstation -> identity -> repos -> catalogue -> creds -> dotfiles -> comms -> tailscale
+site.yml                      play: init -> base -> wifi -> tooling -> console_fonts -> lock -> workstation -> identity -> git -> downloads -> catalogue -> creds -> dotfiles -> comms -> tailscale
 config.example.yml            environment inputs (copy to config.yml)
 scripts/gen-inventory         build inventory/hosts.ini from config.yml's device block
 inventory/hosts.example.ini   inventory shape (real one is generated, gitignored)
@@ -177,8 +177,9 @@ roles/tooling/                zsh, tmux, git, stow — light by constraint
 roles/console_fonts/          console font library + `deck-font` switcher (320x320)
 roles/lock/                   console blank + idle logout + tmux vlock (an unattended deck locks)
 roles/identity/               copy the deck's own SSH keys (outbound auth)
-roles/repos/                  clone the repos list + build each (pip/uv/custom)
-roles/catalogue/              record installed repos + apt; the `deck-catalogue` listing
+roles/git/                    clone the git list + run each entry's install commands
+roles/downloads/              pinned URL + sha256 (release binaries) + install commands
+roles/catalogue/              record git + downloads + apt; the `deck-catalogue` listing
 roles/creds/                  personal-tier env file (0600), sourced at login
 roles/workstation/            uv + several Python versions, apt/pip lists
 roles/dotfiles/               clone public dotfiles, stow (gated)
@@ -198,8 +199,8 @@ static IP); `console_fonts` (console font library + the `deck-font` switcher for
 the 320×320 panel); `lock` (an unattended deck blanks, logs out bare console
 shells, and locks tmux with vlock); `workstation` (uv + several Python versions,
 apt + pip lists); `identity` (copy the deck's own SSH keys for outbound auth);
-`repos` (clone + build your projects); `catalogue` (a `deck-catalogue` listing of
-what's installed — repos + apt — with descriptions); `creds` (personal-tier env
+`git` + `downloads` (clone repos / fetch pinned binaries, then your install commands); `catalogue` (a `deck-catalogue` listing of
+what's installed — git, downloads, apt — with descriptions); `creds` (personal-tier env
 file); `comms` (dial public BBSes + read Usenet); `tailscale` (next hop to the
 homelab). The play also prints an
 `ssh … 'journalctl -f'` command so you can watch the deck's live output while

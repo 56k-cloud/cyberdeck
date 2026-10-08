@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """deck-catalogue — what's installed on this deck and what each thing is.
 
-Lists the cloned repos (name, current commit, description) and the apt extras
+Lists the git entries (name, current commit, description), the downloads
+(name, sha256 prefix, description) and the apt extras
 (with their dpkg summaries) — the deck's bill of materials, apt-list style.
 Reads /etc/cyberdeck/catalogue.json (written by the catalogue role). Stdlib only.
 """
@@ -42,13 +43,22 @@ def main():
         return
     cat = json.loads(CATALOGUE.read_text())
 
-    repos = cat.get("repos", [])
-    if repos:
-        print("REPOS")
-        for r in repos:
+    git = cat.get("git", [])
+    if git:
+        print("GIT")
+        for r in git:
             sha = sh("git", "-C", r["dest"], "rev-parse", "--short", "HEAD") or "-"
             desc = r.get("description") or readme_line(r["dest"]) or "(no description)"
-            print(f"  {r['name']:<18} {sha:<10} {desc}")
+            run = f"  [{r['entrypoint']}]" if r.get("entrypoint") else ""
+            print(f"  {r['name']:<18} {sha:<10} {desc}{run}")
+
+    downloads = cat.get("downloads", [])
+    if downloads:
+        print("DOWNLOADS")
+        for d in downloads:
+            desc = d.get("description") or "(no description)"
+            run = f"  [{d['entrypoint']}]" if d.get("entrypoint") else ""
+            print(f"  {d['name']:<18} {d['sha256'][:8]:<10} {desc}{run}")
 
     apt = cat.get("apt", [])
     if apt:
@@ -57,8 +67,8 @@ def main():
             summary = sh("dpkg-query", "-W", "-f=${binary:Summary}", pkg) or "(not installed)"
             print(f"  {pkg:<18} {summary}")
 
-    if not repos and not apt:
-        print("catalogue is empty — no repos or apt extras configured.")
+    if not git and not downloads and not apt:
+        print("catalogue is empty — no git, downloads or apt extras configured.")
 
 
 if __name__ == "__main__":

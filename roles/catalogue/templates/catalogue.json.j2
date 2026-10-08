@@ -1,7 +1,13 @@
 {
-  "repos": [
-{% for r in repos | default([]) %}
-    {"name": {{ r.name | to_json }}, "dest": {{ ((r.dest | default('~/src/' ~ r.name)) | regex_replace('^~', '/home/' ~ device_user)) | to_json }}, "url": {{ r.url | to_json }}, "description": {{ (r.description | default('')) | to_json }}}{% if not loop.last %},{% endif %}
+  "git": [
+{% for r in git | default([]) %}
+    {"name": {{ r.name | to_json }}, "dest": {{ ((r.dest | default('~/src/' ~ r.name)) | regex_replace('^~', '/home/' ~ device_user)) | to_json }}, "url": {{ r.url | to_json }}, "entrypoint": {{ (r.entrypoint | default('')) | to_json }}, "description": {{ (r.description | default('')) | to_json }}}{% if not loop.last %},{% endif %}
+
+{% endfor %}
+  ],
+  "downloads": [
+{% for d in downloads | default([]) %}
+    {"name": {{ d.name | to_json }}, "url": {{ d.url | to_json }}, "sha256": {{ d.sha256 | to_json }}, "entrypoint": {{ (d.entrypoint | default('')) | to_json }}, "description": {{ (d.description | default('')) | to_json }}}{% if not loop.last %},{% endif %}
 
 {% endfor %}
   ],
