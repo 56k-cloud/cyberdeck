@@ -55,19 +55,39 @@
       changed_when: "'Installed' in (_uv_py.stdout + _uv_py.stderr)"
 
     # Baseline pip packages -> a uv-managed venv (never system pip).
-    - name: Create the baseline uv venv
+    # The default env: always created (so `python` has the base libs), newest
+    # interpreter, holds the default libs + the user's packages.pip.
+    - name: Create the default Python env
       become: true
       become_user: "{{ device_user }}"
       ansible.builtin.command:
         cmd: "{{ _uv }} venv --python {{ python.versions[-1] }} {{ _home }}/{{ workstation_pip_venv }}"
         creates: "{{ _home }}/{{ workstation_pip_venv }}"
-      when: (packages.pip | default([])) | length > 0
 
-    - name: Install the baseline pip packages into the uv venv
+    - name: Install the base libraries into the default env
       become: true
       become_user: "{{ device_user }}"
       ansible.builtin.command:
-        cmd: "{{ _uv }} pip install --python {{ _home }}/{{ workstation_pip_venv }}/bin/python {{ (packages.pip | default([])) | join(' ') }}"
-      when: (packages.pip | default([])) | length > 0
+        cmd: >-
+          {{ _uv }} pip install --python {{ _home }}/{{ workstation_pip_venv }}/bin/python
+          {{ (workstation_default_pip + (packages.pip | default([]))) | join(' ') }}
       register: _uv_pip
       changed_when: "'Installed' in (_uv_pip.stdout + _uv_pip.stderr)"
+      when: (workstation_default_pip + (packages.pip | default([]))) | length > 0
+
+    # Make the default env the one you get in a login shell (bash + zsh) without
+    # activating anything — project venvs still override when activated.
+    - name: Put the default Python env on PATH for login shells
+      ansible.builtin.copy:
+        dest: /etc/profile.d/20-cyberdeck-python.sh
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          # Managed by cyberdeck (workstation). Default Python env on PATH.
+          if [ -d "$HOME/{{ workstation_pip_venv }}/bin" ]; then
+            case ":$PATH:" in
+              *":$HOME/{{ workstation_pip_venv }}/bin:"*) ;;
+              *) PATH="$HOME/{{ workstation_pip_venv }}/bin:$PATH" ;;
+            esac
+          fi
