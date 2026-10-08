@@ -1,0 +1,36 @@
+---
+# just — the deck's command menu. `just` lists the commands; `just wifi` opens the
+# WiFi TUI, and so on. One front door for the deck's own tools (deck-font,
+# deck-catalogue, vlock, nmtui). The justfile lives at ~/.config/just/justfile
+# (just's global justfile, so `just -g <recipe>` works from anywhere) and is
+# symlinked as ~/justfile, so plain `just <recipe>` works anywhere under ~ that
+# isn't inside a project with its own justfile.
+
+- name: Install just
+  ansible.builtin.apt:
+    name: just
+    state: present
+
+- name: Ensure ~/.config/just exists
+  ansible.builtin.file:
+    path: "/home/{{ device_user }}/.config/just"
+    state: directory
+    owner: "{{ device_user }}"
+    group: "{{ device_user }}"
+    mode: "0755"
+
+- name: Install the deck's justfile
+  ansible.builtin.copy:
+    src: justfile
+    dest: "/home/{{ device_user }}/.config/just/justfile"
+    owner: "{{ device_user }}"
+    group: "{{ device_user }}"
+    mode: "0644"
+
+- name: Link it as ~/justfile (so `just <recipe>` works anywhere under ~)
+  ansible.builtin.file:
+    src: "/home/{{ device_user }}/.config/just/justfile"
+    dest: "/home/{{ device_user }}/justfile"
+    state: link
+    owner: "{{ device_user }}"
+    group: "{{ device_user }}"

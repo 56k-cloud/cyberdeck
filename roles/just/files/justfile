@@ -1,0 +1,28 @@
+# cyberdeck — the deck's command menu. `just` alone lists everything.
+# Managed by cyberdeck (just role): edits here are overwritten on the next run.
+# Works from anywhere under ~ ; inside a project with its own justfile, use `just -g <recipe>`.
+
+# List the deck's commands
+[private]
+default:
+    @just --justfile {{justfile()}} --list --unsorted
+
+# Manage WiFi networks (NetworkManager TUI)
+wifi:
+    sudo nmtui
+
+# Console font: list / set <font> / show (no args = show)
+font *args='show':
+    deck-font {{args}}
+
+# What's installed: git clones, downloads, apt extras
+catalogue:
+    deck-catalogue
+
+# Memory use — the deck's budget is ~259 MB available after provisioning
+mem:
+    free -m
+
+# Lock this console now (unlock with your password)
+lock:
+    vlock

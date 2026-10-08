@@ -3,6 +3,22 @@
 A cheat sheet for operating the deck from its own 320×320 console. Not every tool
 is installed on every build; the ones cyberdeck adds are marked *(cyberdeck)*.
 
+## The deck menu: `just` *(cyberdeck)*
+
+`just` on its own lists the deck's commands. Works anywhere under `~`; inside a
+project that has its own justfile, use `just -g <command>`.
+
+| Command | What |
+|---|---|
+| `just wifi` | manage WiFi networks (`sudo nmtui`) |
+| `just font` / `just font list` / `just font set <font>` | console font (wraps `deck-font`) |
+| `just catalogue` | what's installed (`deck-catalogue`) |
+| `just mem` | memory use (`free -m`) — budget is ~259 MB available |
+| `just lock` | lock this console now (`vlock`) |
+
+The menu is managed by the playbook (`roles/just/files/justfile`) — add commands
+there, not on the deck, or they're overwritten on the next run.
+
 ## Network
 
 | Command | What |
