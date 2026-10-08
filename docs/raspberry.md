@@ -29,7 +29,7 @@ is installed on every build; the ones cyberdeck adds are marked *(cyberdeck)*.
 | `tmux` | terminal multiplexer — split/detach; essential on one small screen |
 | `nano` / `vim` | editors |
 | `deck-font list` / `set <font>` | *(cyberdeck)* switch the console font (size vs. legibility on 320×320) |
-| `deck-catalogue` | *(cyberdeck)* what's installed — repos + apt, with descriptions |
+| `deck-catalogue` | *(cyberdeck)* what's installed — git, downloads, apt, with descriptions |
 
 ## Comms *(cyberdeck)*
 
