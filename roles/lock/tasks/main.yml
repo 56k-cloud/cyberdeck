@@ -7,7 +7,8 @@
 # problem, not the deck's):
 #   - console blank  (kernel consoleblank, set at boot via tmpfiles — no reboot)
 #   - idle logout    (TMOUT on bare tty shells; not inside tmux, not over SSH)
-#   - tmux lock      (lock-after-time + vlock, so long-running panes survive)
+#   - tmux lock      (lock-after-time + vlock on the console client only, so
+#                     long-running panes survive and SSH-attached tmux is untouched)
 
 - name: Resolve lock settings (config.yml overrides defaults per key)
   ansible.builtin.set_fact:
@@ -60,7 +61,9 @@
     marker: "# {mark} cyberdeck: idle lock"
     block: |
       {% if (lock_cfg.tmux_lock_min | int) > 0 %}
-      set -g lock-command vlock
+      # lock-command runs in EACH attached client's terminal: lock only the deck's
+      # own console; an SSH-attached client exits at once (just a redraw).
+      set -g lock-command 'case "$(tty)" in /dev/tty[0-9]*) exec vlock ;; esac'
       set -g lock-after-time {{ (lock_cfg.tmux_lock_min | int) * 60 }}
       {% else %}
       set -g lock-after-time 0
