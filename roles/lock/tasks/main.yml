@@ -5,7 +5,7 @@
 #
 # Three layers, all console-scoped (an SSH session's idle time is the laptop's
 # problem, not the deck's):
-#   - console blank  (kernel consoleblank, set at boot via tmpfiles — no reboot)
+#   - console blank  (consoleblank on the kernel cmdline + applied now via VT escape)
 #   - idle logout    (TMOUT on bare tty shells; not inside tmux, not over SSH)
 #   - tmux lock      (lock-after-time + vlock on the console client only, so
 #                     long-running panes survive and SSH-attached tmux is untouched)
@@ -19,20 +19,33 @@
     name: vlock
     state: present
 
-- name: Blank the console after idle (applied at every boot)
-  ansible.builtin.copy:
-    dest: /etc/tmpfiles.d/cyberdeck-consoleblank.conf
-    owner: root
-    group: root
-    mode: "0644"
-    content: |
-      # Managed by cyberdeck (lock). Seconds of idle before the console blanks.
-      w /sys/module/kernel/parameters/consoleblank - - - - {{ (lock_cfg.blank_min | int) * 60 }}
-  register: lock_blank
+# consoleblank is a READ-ONLY kernel param (0444) — it can't be written via
+# /sys at runtime. So: persist it on the kernel cmdline (from next boot), and
+# apply it now with the VT escape ESC[9;<min>] (global blank interval, minutes).
+- name: Remove the old tmpfiles attempt (consoleblank isn't writable via /sys)
+  ansible.builtin.file:
+    path: /etc/tmpfiles.d/cyberdeck-consoleblank.conf
+    state: absent
+
+- name: Persist console blank on the kernel cmdline (cmdline.txt)
+  ansible.builtin.shell:
+    cmd: |
+      set -e
+      f={{ lock_boot_dir }}/cmdline.txt
+      want="consoleblank={{ (lock_cfg.blank_min | int) * 60 }}"
+      cur=$(grep -oE 'consoleblank=[0-9]+' "$f" | head -1 || true)
+      if [ "$cur" != "$want" ]; then
+        if [ -n "$cur" ]; then sed -i "s/consoleblank=[0-9]\+/$want/" "$f";
+        else sed -i "s/[[:space:]]*$/ $want/" "$f"; fi
+        echo CHANGED
+      fi
+  register: lock_cmdline
+  changed_when: "'CHANGED' in lock_cmdline.stdout"
 
 - name: Apply console blank now (no reboot needed)
-  ansible.builtin.command: systemd-tmpfiles --create /etc/tmpfiles.d/cyberdeck-consoleblank.conf
-  when: lock_blank is changed
+  ansible.builtin.shell:
+    cmd: printf '\033[9;{{ [lock_cfg.blank_min | int, 60] | min }}]' > /dev/tty1
+  when: lock_cmdline is changed
 
 - name: Log out idle bare console shells
   ansible.builtin.copy:
