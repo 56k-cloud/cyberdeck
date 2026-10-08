@@ -151,7 +151,7 @@ ssh:
 
 **The rest, briefly:** `device` (host / user / ssh_private_key / timezone / locale / profile) · `python` +
 `packages` (Python toolchain, apt/pip lists) · `git` + `downloads` (repos to clone / pinned files to fetch, each with ordered
-`install` commands) · `creds` (your dev-identity tokens) · `comms` (public BBS / Usenet
+`install` commands — see [docs/software.md](docs/software.md)) · `creds` (your dev-identity tokens) · `comms` (public BBS / Usenet
 servers) · `lock` (idle blank / logout / tmux lock timers — defaults are
 safe, omit to keep them) · `tailscale` (auth key to reach the homelab — **leave empty to skip**,
 e.g. when you're already on your LAN) · `dotfiles` (public dotfiles repo URL —
@@ -188,6 +188,7 @@ roles/tailscale/              join the tailnet (skips without an auth key)
 docs/secrets-posture.md       what secrets go where, and why
 docs/raspberry.md             deck reference — handy TUIs & commands
 docs/pyenv.md                 python env management (default env, uv run, direnv)
+docs/software.md              adding software: git clones + pinned downloads, install semantics
 ```
 
 ## Roadmap

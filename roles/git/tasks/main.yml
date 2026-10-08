@@ -13,7 +13,7 @@
     that: repos is not defined
     fail_msg: >-
       `repos:` was renamed to `git:`, and `build:`/`make_target:`/`commands:` were
-      replaced by an ordered `install:` list. See config.example.yml.
+      replaced by an ordered `install:` list. See docs/software.md (Migrating from repos).
 
 - name: Skip git (none configured)
   ansible.builtin.debug:

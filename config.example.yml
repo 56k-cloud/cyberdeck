@@ -78,6 +78,7 @@ packages:
                  # PATH). `rich` ships by default; add your always-available libs here.
 
 # --- Software you add: git clones + pinned downloads --------------------------
+# Full guide: docs/software.md
 # Same shape for both. `install` is an ORDERED list of shell commands, run top to
 # bottom and stopping at the first failure (like joining them with &&). It runs
 # as you, in a login shell (your PATH: ~/.local/bin, uv, the default python env).
