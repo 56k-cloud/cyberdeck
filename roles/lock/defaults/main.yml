@@ -1,0 +1,7 @@
+---
+# Built-in defaults; config.yml's `lock:` block overrides per key. Minutes; 0 = off.
+lock_defaults:
+  blank_min: 5            # console blanks after this idle time (consoleblank)
+  idle_logout_min: 15     # a bare console shell (tty, not tmux/SSH) logs out
+  tmux_lock_min: 15       # tmux locks with vlock (keeps your panes alive)
+  allow_autologin: false  # an autologin getty would undo the idle logout

@@ -133,6 +133,15 @@ tailscale:
   tags: ["tag:cyberdeck"]
   autoconnect: true            # false => installed but not up on boot (manual `tailscale up`)
 
+# --- Lock: don't leave an unattended deck unlocked ---------------------------
+# A lost-but-unlocked deck (live tailnet + SSH key) is the real exposure. All
+# console-scoped: SSH sessions are unaffected. Minutes; 0 = off. Omit to keep defaults.
+lock:
+  blank_min: 5                 # console goes dark
+  idle_logout_min: 15          # bare tty shell logs out (not in tmux, not over SSH)
+  tmux_lock_min: 15            # tmux locks with vlock — your panes keep running
+  allow_autologin: false       # true keeps a console autologin (defeats the logout)
+
 # --- dotfiles (I1) -------------------------------------------------------------
 dotfiles:
   public_repo: ""                   # HTTPS URL of the PUBLIC dotfiles repo; empty => skip

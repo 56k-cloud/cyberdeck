@@ -70,6 +70,7 @@
     - base
     - tooling
     - console_fonts   # console font library + `deck-font` switcher (320x320)
+    - lock            # console blank + idle logout + tmux vlock (G34)
     - workstation     # uv python toolchain (several versions) + apt/pip lists
     - identity        # copy the user-provided ssh.identity_keys (outbound auth)
     - repos           # clone the repos list + build each (pip/uv/custom)
