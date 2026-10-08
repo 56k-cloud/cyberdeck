@@ -60,7 +60,7 @@
           key="$(git rev-parse HEAD) {{ item.install | to_json | hash('sha1') }}"
           marker="{{ _state }}/git-{{ item.name }}"
           if [ -f "$marker" ] && [ "$(cat "$marker")" = "$key" ]; then exit 0; fi
-          bash -lc {{ (['set -e'] + item.install) | join(_nl) | quote }}
+          bash -lc {{ (['set -ex'] + item.install) | join(_nl) | quote }}   # -x: a failure shows each command run, ending at the one that broke
           mkdir -p "{{ _state }}" && printf '%s' "$key" > "$marker"
           echo __CYBERDECK_INSTALLED__
       loop: "{{ git | selectattr('install', 'defined') | list }}"
