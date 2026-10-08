@@ -189,6 +189,7 @@ docs/secrets-posture.md       what secrets go where, and why
 docs/raspberry.md             deck reference — handy TUIs & commands
 docs/pyenv.md                 python env management (default env, uv run, direnv)
 docs/software.md              adding software: git clones + pinned downloads, install semantics
+docs/tags.md                  run part of the playbook: core / extras / access + per-role tags
 ```
 
 ## Roadmap

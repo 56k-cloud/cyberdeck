@@ -61,26 +61,31 @@
           - "  ssh {{ ansible_user | default(device_user) }}@{{ ansible_host | default(inventory_hostname) }} 'sudo tail -F /var/log/apt/term.log'"
       tags: [always]
 
+  # Tags: each role is tagged with its own name plus a slice —
+  #   core    a secure, connected terminal (init … lock, identity, creds, dotfiles, tailscale)
+  #   extras  what you install and iterate on (workstation, git, downloads, catalogue, comms)
+  #   access  overlay: the revocable credentials (identity, creds, tailscale)
+  # e.g. --tags extras · --tags downloads,catalogue · --skip-tags init. See docs/tags.md.
   roles:
     # init runs FIRST: it brings the PicoCalc hardware up (display, keyboard,
     # audio, poweroff) and REBOOTS so the overlays load — then the system stages
     # below run on a device with a working screen + keyboard. Runs only for
     # profiles with `hardware: picocalc`, so generic boards are unaffected.
-    - init
-    - base
-    - wifi            # prioritised NetworkManager profiles (+ static IP) from the wifi list
-    - tooling
-    - console_fonts   # console font library + `deck-font` switcher (320x320)
-    - lock            # console blank + idle logout + tmux vlock (G34)
-    - workstation     # uv python toolchain (several versions) + apt/pip lists
-    - identity        # copy the user-provided ssh.identity_keys (outbound auth)
-    - git             # clone the git list + run each entry's install commands
-    - downloads       # pinned URL + sha256 (e.g. release binaries) + install commands
-    - catalogue       # record what's installed + the `deck-catalogue` command
-    - creds           # personal-tier env file (0600); lab tier absent by design
-    - dotfiles
-    - comms           # BBS + Usenet clients + per-server launchers (public servers)
-    - tailscale       # next-hop to the homelab; no-ops when auth_key is unset
+    - { role: init,          tags: [init, core] }
+    - { role: base,          tags: [base, core] }
+    - { role: wifi,          tags: [wifi, core] }               # prioritised NetworkManager profiles (+ static IP) from the wifi list
+    - { role: tooling,       tags: [tooling, core] }
+    - { role: console_fonts, tags: [console_fonts, core] }      # console font library + `deck-font` switcher (320x320)
+    - { role: lock,          tags: [lock, core] }               # console blank + idle logout + tmux vlock (G34)
+    - { role: workstation,   tags: [workstation, extras] }      # uv python toolchain (several versions) + apt/pip lists
+    - { role: identity,      tags: [identity, core, access] }   # copy the user-provided ssh.identity_keys (outbound auth)
+    - { role: git,           tags: [git, extras] }              # clone the git list + run each entry's install commands
+    - { role: downloads,     tags: [downloads, extras] }        # pinned URL + sha256 (e.g. release binaries) + install commands
+    - { role: catalogue,     tags: [catalogue, extras] }        # record what's installed + the `deck-catalogue` command
+    - { role: creds,         tags: [creds, core, access] }      # personal-tier env file (0600); lab tier absent by design
+    - { role: dotfiles,      tags: [dotfiles, core] }
+    - { role: comms,         tags: [comms, extras] }            # BBS + Usenet clients + per-server launchers (public servers)
+    - { role: tailscale,     tags: [tailscale, core, access] }  # next-hop to the homelab; no-ops when auth_key is unset
 
   post_tasks:
     # Success banner: confirm the deck is reachable and leave the handy commands
