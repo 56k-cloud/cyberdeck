@@ -5,3 +5,6 @@ lock_defaults:
   idle_logout_min: 15     # a bare console shell (tty, not tmux/SSH) logs out
   tmux_lock_min: 15       # tmux locks with vlock (keeps your panes alive)
   allow_autologin: false  # an autologin getty would undo the idle logout
+
+# Internal: Raspberry Pi OS (bookworm/trixie) boot partition, where cmdline.txt lives.
+lock_boot_dir: /boot/firmware
