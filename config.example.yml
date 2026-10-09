@@ -57,7 +57,7 @@ ssh:
       private: "~/.config/cyberdeck/keys/id_ed25519"       # on the provisioning machine
       public:  "~/.config/cyberdeck/keys/id_ed25519.pub"
 
-# --- Python toolchain (I3) -----------------------------------------------------
+# --- Workstation: Python toolchain + your apt / pip extras ----------------------
 # Install several versions ONCE so you are not rebuilding the common ones on every
 # restore; the LAST entry is the default. (Disk is cheap on a 16 GB+ card — the
 # 512 MB ceiling is a RUNTIME budget, not an install-size one.)
@@ -67,15 +67,20 @@ ssh:
 #   classic:     python3.10 -m venv .venv && source .venv/bin/activate
 # uv installs the versions and exposes them on PATH as python3.8 / python3.10 /…,
 # and `python3-venv` / `python3-pip` cover the system interpreter too.
-python:
-  enable: true
-  versions: ["3.8", "3.10", "3.13"]
-
-# --- Packages (I3) -------------------------------------------------------------
-packages:
-  apt: []        # extra apt apps preinstalled
-  pip: []        # extra libs for the DEFAULT python env (~/.venvs/base, always on
-                 # PATH). `rich` ships by default; add your always-available libs here.
+workstation:
+  # Python versions (uv-managed; the LAST is the default). Empty list => no Python
+  # toolchain — apt below still installs.
+  python:
+    - "3.8"
+    - "3.10"
+    - "3.13"
+  # Extra apt apps, one per line so each can carry a comment.
+  apt:
+    - mc            # midnight commander
+    - fastfetch     # system info (modern neofetch)
+  # Extra libs for the DEFAULT python env (~/.venvs/base, always on PATH).
+  # rich + textual ship by default; add your always-available libs here.
+  pip: []
 
 # --- Software you add: git clones + pinned downloads --------------------------
 # Full guide: docs/software.md
@@ -159,7 +164,12 @@ lock:
 dotfiles:
   public_repo: ""                   # HTTPS URL of the PUBLIC dotfiles repo; empty => skip
   # Stow packages (top-level dirs of that repo) to link into ~. Required when
-  # public_repo is set. For narrow screens: `bin` ships `narrow` (reflow text to fit;
-  # `cmd --help N`), `tealdeer` makes `tldr` fetch its pages itself (add `tealdeer`
-  # to packages.apt too).
-  packages: [zsh, tmux, bin, tealdeer]
+  # public_repo is set.
+  stow:
+    - zsh
+    - tmux
+    - bin           # `narrow` — reflow text to fit (`cmd --help N`)
+    - tealdeer      # tldr config: fetches its pages on first use
+  # apt packages the stowed config needs — installed before stowing.
+  apt:
+    - tealdeer      # tldr itself (configured by the tealdeer stow package)

@@ -25,7 +25,11 @@
     cyberdeck_profile: "{{ device.profile }}"
     device_authorized_keys: "{{ ssh.authorized_keys | default([]) }}"
     dotfiles_public_repo: "{{ dotfiles.public_repo | default('') }}"
-    dotfiles_stow_packages: "{{ dotfiles.packages | default([]) }}"
+    dotfiles_stow_packages: "{{ dotfiles.stow | default([]) }}"
+    dotfiles_apt: "{{ dotfiles.apt | default([]) }}"
+    workstation_python: "{{ workstation.python | default([]) }}"
+    workstation_apt: "{{ workstation.apt | default([]) }}"
+    workstation_pip: "{{ workstation.pip | default([]) }}"
 
   pre_tasks:
     - name: Require a supported Ansible (project is pinned to core >= 2.21)
@@ -35,6 +39,18 @@
         fail_msg: >-
           cyberdeck is pinned to ansible-core >= 2.21 (tested on 2.21 / ansible 14).
           You have {{ ansible_version.full }} — see requirements.txt.
+      tags: [always]
+
+    - name: Refuse the old config keys (python / packages / dotfiles.packages)
+      ansible.builtin.assert:
+        that:
+          - python is not defined
+          - packages is not defined
+          - dotfiles is not defined or dotfiles.packages is not defined
+        fail_msg: >-
+          config.yml uses old keys. `python.versions` -> `workstation.python`,
+          `packages.apt`/`packages.pip` -> `workstation.apt`/`workstation.pip`,
+          `dotfiles.packages` -> `dotfiles.stow`. See config.example.yml.
       tags: [always]
 
     - name: Load the active device profile

@@ -14,13 +14,21 @@
       shell from the tooling role. Set the URL in config.yml to enable.
   when: dotfiles_public_repo | length == 0
 
-- name: Require dotfiles.packages when a repo is set
+- name: Require dotfiles.stow when a repo is set
   ansible.builtin.assert:
     that: (dotfiles_stow_packages | default([])) | length > 0
     fail_msg: >-
-      dotfiles.public_repo is set but dotfiles.packages is missing — add the stow
-      packages to link, e.g. `packages: [zsh, tmux, bin, tealdeer]` (see config.example.yml).
+      dotfiles.public_repo is set but dotfiles.stow is missing — list the stow
+      packages to link (e.g. zsh, tmux, bin, tealdeer; see config.example.yml).
   when: dotfiles_public_repo | length > 0
+
+- name: Install the apt packages the dotfiles need (dotfiles.apt)
+  ansible.builtin.apt:
+    name: "{{ dotfiles_apt }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  when: dotfiles_public_repo | length > 0 and (dotfiles_apt | default([])) | length > 0
 
 - name: Resolve the device user's home directory (on the device, not the control node)
   ansible.builtin.getent:

@@ -11,5 +11,5 @@
 
 {% endfor %}
   ],
-  "apt": {{ (packages.apt | default([])) | to_json }}
+  "apt": {{ ((workstation_apt | default([])) + (dotfiles_apt | default([]))) | unique | to_json }}
 }

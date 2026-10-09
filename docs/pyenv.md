@@ -8,7 +8,7 @@ Three layers, from "just works" to "fully isolated per project".
 adds it at login). Out of the box:
 
 - `python` is that env's interpreter,
-- `rich` and `textual` are importable, plus anything you put in `packages.pip`,
+- `rich` and `textual` are importable, plus anything you put in `workstation.pip`,
 - nothing to activate.
 
 It's *on PATH*, not *activated* (no `VIRTUAL_ENV` set) — so a project env cleanly
