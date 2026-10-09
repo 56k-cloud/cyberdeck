@@ -156,7 +156,7 @@ ssh:
 servers) · `lock` (idle blank / logout / tmux lock timers — defaults are
 safe, omit to keep them) · `tailscale` (auth key to reach the homelab — **leave empty to skip**,
 e.g. when you're already on your LAN) · `dotfiles` (public dotfiles repo URL —
-empty to skip).
+empty to skip — plus the stow `packages` to link).
 
 > **Secrets** — WiFi passwords, tokens, and private keys — live **only** in
 > `config.yml` and the files it points at. It is gitignored; never commit it. Full

@@ -25,6 +25,7 @@
     cyberdeck_profile: "{{ device.profile }}"
     device_authorized_keys: "{{ ssh.authorized_keys | default([]) }}"
     dotfiles_public_repo: "{{ dotfiles.public_repo | default('') }}"
+    dotfiles_stow_packages: "{{ dotfiles.packages | default([]) }}"
 
   pre_tasks:
     - name: Require a supported Ansible (project is pinned to core >= 2.21)

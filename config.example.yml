@@ -158,3 +158,8 @@ lock:
 # --- dotfiles (I1) -------------------------------------------------------------
 dotfiles:
   public_repo: ""                   # HTTPS URL of the PUBLIC dotfiles repo; empty => skip
+  # Stow packages (top-level dirs of that repo) to link into ~. Required when
+  # public_repo is set. For narrow screens: `bin` ships `narrow` (reflow text to fit;
+  # `cmd --help N`), `tealdeer` makes `tldr` fetch its pages itself (add `tealdeer`
+  # to packages.apt too).
+  packages: [zsh, tmux, bin, tealdeer]

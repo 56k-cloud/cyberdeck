@@ -5,8 +5,6 @@ device_user: deck
 # still has a working shell from the tooling role).
 dotfiles_public_repo: ""
 
-# Where the repo is cloned, and which stow packages to link into $HOME.
+# Where the repo is cloned (internal). The stow PACKAGES are not defaulted here —
+# they come from config.yml (dotfiles.packages), the one place you tune them.
 dotfiles_clone_dir: "dotfiles-public"   # relative to the device user's home
-dotfiles_stow_packages:
-  - zsh
-  - tmux
