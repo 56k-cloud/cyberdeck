@@ -9,9 +9,10 @@ rewrite.
 
 > **Status.** All planned provisioning roles are implemented — hardware init,
 > base/SSH, WiFi, tooling, console fonts, Python/uv, identity, git + downloads, catalogue,
-> creds, comms, and Tailscale. The `dotfiles` role is written but **unproven** (it
-> needs the public dotfiles repo, which is still bare). Finer small-screen config
-> and layer-3 companion services are still ahead — see the Roadmap.
+> creds, comms, Tailscale, and dotfiles (proven on hardware). Small-screen config is
+> console-only and lives in the public dotfiles (prompt + tmux status adapt to
+> terminal width), so the deck needs no extra role for it. Layer-3
+> companion services are still ahead — see the Roadmap.
 
 ## The three layers
 
@@ -183,7 +184,7 @@ roles/downloads/              pinned URL + sha256 (release binaries) + install c
 roles/catalogue/              record git + downloads + apt; the `deck-catalogue` listing
 roles/creds/                  personal-tier env file (0600), sourced at login
 roles/workstation/            uv + several Python versions, apt/pip lists
-roles/dotfiles/               clone public dotfiles, stow (gated)
+roles/dotfiles/               clone public dotfiles, stow (skips without a repo URL)
 roles/comms/                  BBS (telnet) + Usenet (tin) + per-server launchers
 roles/tailscale/              join the tailnet (skips without an auth key)
 docs/secrets-posture.md       what secrets go where, and why
